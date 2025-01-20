@@ -6,8 +6,9 @@ struct chessPiece
     int startingPosition[2];
     int instantPosition[2];
     char symbol;
-    int firstMove;
+    int firstMove; //at the beginning: 1
     int isWhite;
+    int isTaken; //at the beginning: 0
 };
 
 void CreatePawns(struct chessPiece *piece, int yxPosition)
@@ -40,57 +41,53 @@ void MovePieceAndSetBoard(struct chessPiece **piece, char chessBoard[8][8], int 
     chessBoard[(*piece)->instantPosition[0]][(*piece)->instantPosition[1]] = (*piece)->symbol;
 }
 
-int PawnMotion(struct chessPiece **pawn, int nextPosition)
+int PawnMotion(struct chessPiece **pawn, struct chessPiece **takenPiece, int nextPosition)
 {
-    if((*pawn)->isWhite == 1)
+    int nextColumn = nextPosition % 10;
+    int nextRow = nextPosition / 10;
+    int stepDirection = (*pawn)->isWhite ? 1 : -1;
+
+    if(((*pawn)->instantPosition[0] - nextRow == stepDirection) && ((*pawn)->instantPosition[1] == nextColumn))
     {
-        if( ((*pawn)->instantPosition[0] - nextPosition / 10 == 1) && ((*pawn)->instantPosition[1] == nextPosition % 10))
+        if((*pawn)->firstMove == 1)
         {
-            if((*pawn)->firstMove == 1)
-            {
-                (*pawn)->firstMove = 0;
-            }
-
-            return 1;
+            (*pawn)->firstMove = 0;
         }
-        
-        if(((*pawn)->instantPosition[0] - nextPosition / 10 == 2) && ((*pawn)->instantPosition[1] == nextPosition % 10) && (*pawn)->firstMove)
-        {
-            if((*pawn)->firstMove == 1)
-            {
-                (*pawn)->firstMove = 0;
-            }
 
-            return 1;
-        }
+        return 1;
     }
-    if((*pawn)->isWhite == 0)
+    
+    if(((*pawn)->instantPosition[0] - nextRow == 2 * stepDirection) && ((*pawn)->instantPosition[1] == nextColumn) && (*pawn)->firstMove)
     {
-        if( ((*pawn)->instantPosition[0] - nextPosition / 10 == -1) && ((*pawn)->instantPosition[1] == nextPosition % 10))
-        {
-            if((*pawn)->firstMove == 1)
-            {
-                (*pawn)->firstMove = 0;
-            }
+        (*pawn)->firstMove = 0;
 
-            return 1;
-        }
-        
-        if(((*pawn)->instantPosition[0] - nextPosition / 10 == -2) && ((*pawn)->instantPosition[1] == nextPosition % 10) && (*pawn)->firstMove)
-        {
-            if((*pawn)->firstMove == 1)
-            {
-                (*pawn)->firstMove = 0;
-            }
+        return 1;
+    }
 
-            return 1;
+    //Taking rival piece
+    //nextPosition == takenPiece position
+    if((*takenPiece) != NULL)
+    {
+        if((*takenPiece)->instantPosition[0] == nextRow && (*takenPiece)->instantPosition[1] == nextColumn)
+        {
+            //Is nextPosition suitable for taking it
+            if(((*pawn)->instantPosition[0] - nextRow == stepDirection) && abs((*pawn)->instantPosition[1] - nextColumn) == 1)
+            {
+                if((*pawn)->firstMove == 1)
+                {
+                    (*pawn)->firstMove = 0;
+                }
+
+                (*takenPiece)->isTaken = 1;
+                return 1;
+            }
         }
     }
     
     return 0;
 }
 
-int RookMotion(struct chessPiece **rook, char chessBoard[8][8], int nextPos, char defaultSymbol)
+int RookMotion(struct chessPiece **rook, struct chessPiece **takenPiece, char chessBoard[8][8], int nextPos, char defaultSymbol)
 {   
     int nextPosition[] = {nextPos / 10, nextPos % 10};
 
@@ -98,8 +95,10 @@ int RookMotion(struct chessPiece **rook, char chessBoard[8][8], int nextPos, cha
     {
         int step = (nextPosition[1] - (*rook)->instantPosition[1]);
 
-        for(int i =  1 * abs(step) / step; i != step + abs(step) / step; i += abs(step) / step)
+        //Check UNTIL last step (nextPosition)
+        for(int i = abs(step) / step; i != step; i += abs(step) / step)
         {
+            printf("%d ", i);
             if(chessBoard[(*rook)->instantPosition[0]][(*rook)->instantPosition[1] + i] != defaultSymbol)
                 return 0;
         }
@@ -108,8 +107,9 @@ int RookMotion(struct chessPiece **rook, char chessBoard[8][8], int nextPos, cha
     {
         int step = (nextPosition[0] - (*rook)->instantPosition[0]);
 
-        for(int i =  1 * abs(step) / step; i != step + abs(step) / step; i += abs(step) / step)
+        for(int i =  1 * abs(step) / step; i != step; i += abs(step) / step)
         {
+            printf("%d ? ", i);
             if(chessBoard[(*rook)->instantPosition[0] + i][(*rook)->instantPosition[1]] != defaultSymbol)
                 return 0;
         }
@@ -118,7 +118,21 @@ int RookMotion(struct chessPiece **rook, char chessBoard[8][8], int nextPos, cha
     {
         return 0;
     }
-    
+
+    //Check last step
+    //Is possible to take piece
+    if((*takenPiece) != NULL)
+    {
+        if((*takenPiece)->instantPosition[0] == nextPosition[0] && (*takenPiece)->instantPosition[1] == nextPosition[1])
+        {
+            (*takenPiece)->isTaken = 1;
+        }
+    }
+    else if(chessBoard[nextPosition[0]][nextPosition[1]] != defaultSymbol) //So this piece is my piece, not rival
+    {
+        return 0;
+    }
+
     if((*rook)->firstMove == 1)
     {
         (*rook)->firstMove = 0;
@@ -196,3 +210,4 @@ int KingMotion(struct chessPiece **king, char chessBoard[8][8], int nextPos, cha
     else
         return 0;
 }
+
