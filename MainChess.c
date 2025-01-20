@@ -150,7 +150,7 @@ void PieceSwitchFunction(struct chessPiece **selectedPiece, struct chessPiece **
             break;
 
         case 'H':
-            if(HorseMotion(selectedPiece, chessBoard, nextPosition, defaultSymbol))
+            if(HorseMotion(selectedPiece, takenPiece, chessBoard, nextPosition, defaultSymbol))
             {
                 MovePieceAndSetBoard(selectedPiece, chessBoard, nextPosition, defaultSymbol);
             }
@@ -158,7 +158,7 @@ void PieceSwitchFunction(struct chessPiece **selectedPiece, struct chessPiece **
             break;
         
         case 'B':
-            if(BishopMotion(selectedPiece, chessBoard, nextPosition, defaultSymbol))
+            if(BishopMotion(selectedPiece, takenPiece, chessBoard, nextPosition, defaultSymbol))
             {
                 MovePieceAndSetBoard(selectedPiece, chessBoard, nextPosition, defaultSymbol);
             }
@@ -167,13 +167,13 @@ void PieceSwitchFunction(struct chessPiece **selectedPiece, struct chessPiece **
 
         case 'Q':
             //Calling horse and bishop functions
-            if(BishopMotion(selectedPiece, chessBoard, nextPosition, defaultSymbol) || RookMotion(selectedPiece, takenPiece, chessBoard, nextPosition, defaultSymbol))
+            if(BishopMotion(selectedPiece, takenPiece, chessBoard, nextPosition, defaultSymbol) || RookMotion(selectedPiece, takenPiece, chessBoard, nextPosition, defaultSymbol))
             {
                 MovePieceAndSetBoard(selectedPiece, chessBoard, nextPosition, defaultSymbol);
             }
 
         case 'K':
-            if(KingMotion(selectedPiece, chessBoard, nextPosition, defaultSymbol))
+            if(KingMotion(selectedPiece, takenPiece, chessBoard, nextPosition, defaultSymbol))
             {
                 MovePieceAndSetBoard(selectedPiece, chessBoard, nextPosition, defaultSymbol);
             }
@@ -234,27 +234,3 @@ void ClearTerminal()
 {
     system("cls"); //Clear terminal for Windows
 }
-
-/*
-void TakeRivalPiece(struct chessPiece wP[], struct chessPiece wM[], struct chessPiece bP[], struct chessPiece bM[], int takenPiecePos, int isWhiteTurn)
-{
-    struct chessPiece *takenPiece = (struct chessPiece *)malloc(sizeof(struct chessPiece));
-
-    if(isWhiteTurn)
-    {
-        FindSelectedPiece(wP, wM, takenPiecePos, &takenPiece);
-    }
-    else
-    {
-        FindSelectedPiece(bP, bM, takenPiecePos, &takenPiece);
-    }
-
-    if(takenPiece == NULL)
-        printf("Null pointer"); 
-    else
-        printf("%c ", takenPiece->symbol);
-
-    free(takenPiece);
-    takenPiece = NULL;
-}
-*/

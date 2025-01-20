@@ -83,7 +83,7 @@ int PawnMotion(struct chessPiece **pawn, struct chessPiece **takenPiece, int nex
             }
         }
     }
-    
+
     return 0;
 }
 
@@ -141,12 +141,24 @@ int RookMotion(struct chessPiece **rook, struct chessPiece **takenPiece, char ch
     return 1;
 }
 
-int HorseMotion(struct chessPiece **horse, char chessBoard[8][8], int nextPos, char defaultSymbol)
+int HorseMotion(struct chessPiece **horse, struct chessPiece **takenPiece, char chessBoard[8][8], int nextPos, char defaultSymbol)
 {
     double distance = sqrt(pow((*horse)->instantPosition[0] - (nextPos / 10), 2) + pow((*horse)->instantPosition[1] - (nextPos % 10), 2));
 
-    if(distance == sqrt(5) && (chessBoard[nextPos / 10][nextPos % 10] == defaultSymbol))
+    if(distance == sqrt(5))
     {
+        if((*takenPiece) != NULL)
+        {
+            if((*takenPiece)->instantPosition[0] == nextPos / 10 && (*takenPiece)->instantPosition[1] == nextPos % 10)
+            {
+                (*takenPiece)->isTaken = 1;
+            }
+        }
+        else if(chessBoard[nextPos / 10][nextPos % 10] != defaultSymbol) //So this piece is my piece, not rival
+        {
+            return 0;
+        }
+
         if((*horse)->firstMove == 1)
         {
             (*horse)->firstMove = 0;
@@ -158,7 +170,7 @@ int HorseMotion(struct chessPiece **horse, char chessBoard[8][8], int nextPos, c
     return 0;
 }
 
-int BishopMotion(struct chessPiece **bishop, char chessBoard[8][8], int nextPos, char defaultSymbol)
+int BishopMotion(struct chessPiece **bishop, struct chessPiece **takenPiece, char chessBoard[8][8], int nextPos, char defaultSymbol)
 {
     //Think in reverse for the y-axis
     int iX = 1, iY = 1;
@@ -180,8 +192,20 @@ int BishopMotion(struct chessPiece **bishop, char chessBoard[8][8], int nextPos,
         tempBishopPositionX += iX;
         tempBishopPositionY += iY;
 
-        if((tempBishopPositionY == nextPos / 10) && (tempBishopPositionX == nextPos % 10))
+        if((tempBishopPositionY + iY == nextPos / 10) && (tempBishopPositionX + iX == nextPos % 10))
         {
+            if((*takenPiece) != NULL)
+            {
+                if((*takenPiece)->instantPosition[0] == nextPos / 10 && (*takenPiece)->instantPosition[1] == nextPos % 10)
+                {
+                    (*takenPiece)->isTaken = 1;
+                }
+            }
+            else if(chessBoard[nextPos / 10][nextPos % 10] != defaultSymbol) //So this piece is my piece, not rival
+            {
+                return 0;
+            }
+
             if((*bishop)->firstMove == 1)
             {
                 (*bishop)->firstMove = 0;
@@ -194,12 +218,24 @@ int BishopMotion(struct chessPiece **bishop, char chessBoard[8][8], int nextPos,
     return 0;
 }
 
-int KingMotion(struct chessPiece **king, char chessBoard[8][8], int nextPos, char defaultSymbol)
+int KingMotion(struct chessPiece **king, struct chessPiece **takenPiece, char chessBoard[8][8], int nextPos, char defaultSymbol)
 {
     double distance = sqrt(pow((*king)->instantPosition[0] - (nextPos / 10), 2) + pow((*king)->instantPosition[1] - (nextPos % 10), 2));
 
-    if(distance <= sqrt(2) && (chessBoard[nextPos / 10][nextPos % 10] == defaultSymbol))
+    if(distance <= sqrt(2))
     {
+        if((*takenPiece) != NULL)
+        {
+            if((*takenPiece)->instantPosition[0] == nextPos / 10 && (*takenPiece)->instantPosition[1] == nextPos % 10)
+            {
+                (*takenPiece)->isTaken = 1;
+            }
+        }
+        else if(chessBoard[nextPos / 10][nextPos % 10] != defaultSymbol) //So this piece is my piece, not rival
+        {
+            return 0;
+        }
+
         if((*king)->firstMove == 1)
         {
             (*king)->firstMove = 0;
