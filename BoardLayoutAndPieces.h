@@ -241,19 +241,34 @@ int KingMotion(struct chessPiece **king, struct chessPiece **takenPiece, char ch
 
         return 1;
     }
-    else if((*king)->instantPosition[0] == nextPos / 10 && abs((*king)->instantPosition[1] - nextPos % 10) == 2)
-    {
-        if(Rok())
-        {
-            printf("ROK");
-            //return 1;
-        }
-    }
     
     return 0;
 }
 
 int Rok()
 {
-    
+    //Check between king and rook
+    //Check first move, both 
+}
+
+void PawnPromotion(struct chessPiece **pawn)
+{
+    char c;
+    char newPiece;
+
+    printf("Input what you want to promote the pawn to (Q: Queen / H: Horse / B: Bishop / R: Rook): ");
+
+    while (1) {
+        scanf(" %c", &newPiece);
+
+        if (newPiece == 'Q' || newPiece == 'H' || newPiece == 'B' || newPiece == 'R')
+            break;
+        else 
+        {
+            printf("Please input valid piece!: ");
+            while ((c = getchar()) != '\n' && c != EOF);
+        }
+    }
+
+    (*pawn)->symbol = newPiece;
 }

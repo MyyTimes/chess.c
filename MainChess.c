@@ -124,7 +124,7 @@ int main()
 
         PieceSwitchFunction(&selectedPiece, &takenPiece, selectedPosition, nextPosition, defaultSymbol, chessBoard);
 
-        isWhiteTurn = !isWhiteTurn;
+        //isWhiteTurn = !isWhiteTurn;
 
         PrintChessBoard(chessBoard, lengthBoard, defaultSymbol); 
     }
@@ -139,6 +139,12 @@ void PieceSwitchFunction(struct chessPiece **selectedPiece, struct chessPiece **
         case 'P':
             if (PawnMotion(selectedPiece, takenPiece, nextPosition))
             {
+                if(((*selectedPiece)->isWhite == 1 && nextPosition / 10 == 0) || (((*selectedPiece)->isWhite == 0 && nextPosition % 10 == 7)))
+                {
+                    //Pawn is located on the zone of last rival line
+                    PawnPromotion(selectedPiece);
+                }
+
                 MovePieceAndSetBoard(selectedPiece, chessBoard, nextPosition, defaultSymbol);
             }
 
@@ -176,6 +182,12 @@ void PieceSwitchFunction(struct chessPiece **selectedPiece, struct chessPiece **
             }
 
         case 'K':
+            if((*selectedPiece)->instantPosition[0] == nextPosition / 10 && abs((*selectedPiece)->instantPosition[1] - nextPosition % 10) == 2)
+            {
+                Rok();
+                return;
+            }
+
             if(KingMotion(selectedPiece, takenPiece, chessBoard, nextPosition, defaultSymbol))
             {
                 MovePieceAndSetBoard(selectedPiece, chessBoard, nextPosition, defaultSymbol);
@@ -247,11 +259,6 @@ void PrintChessBoard(char board[8][8], int length, char defaultSymbol)
 
 }
 
-void ClearTerminal()
-{
-    system("cls"); //Clear terminal for Windows
-}
-
 int TakeInputFromGamer(char questionText[])
 {
     char inputPos[3]; //Last term is '\0'
@@ -262,25 +269,7 @@ int TakeInputFromGamer(char questionText[])
     return ((int)inputPos[0] - (int)'1') * 10 + ((int)inputPos[1] - (int)'A');
 }
 
-/*
-void prasf(struct chessPiece wP, struct chessPiece wM, struct chessPiece bP, struct chessPiece bM, char board[8][8], int length, char defaultSymbol)
+void ClearTerminal()
 {
-    //ClearTerminal();
-
-    printf(RED "  A B C D E F G H\n" RESET);
-
-    for(int i = 0; i < length; i++)
-    {
-        printf(RED "%d " RESET, i + 1);
-        
-        for(int j = 0; j < length; j++)
-        {
-            if(board[i][j] != defaultSymbol)
-                printf(CYAN "%c " RESET, board[i][j]);
-            else
-                printf("%c ", board[i][j]);
-        }
-        printf("\n");
-    }
+    system("cls"); //Clear terminal for Windows
 }
-*/
