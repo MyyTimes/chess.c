@@ -98,7 +98,6 @@ int RookMotion(struct chessPiece **rook, struct chessPiece **takenPiece, char ch
         //Check UNTIL last step (nextPosition)
         for(int i = abs(step) / step; i != step; i += abs(step) / step)
         {
-            printf("%d ", i);
             if(chessBoard[(*rook)->instantPosition[0]][(*rook)->instantPosition[1] + i] != defaultSymbol)
                 return 0;
         }
@@ -109,7 +108,6 @@ int RookMotion(struct chessPiece **rook, struct chessPiece **takenPiece, char ch
 
         for(int i =  1 * abs(step) / step; i != step; i += abs(step) / step)
         {
-            printf("%d ? ", i);
             if(chessBoard[(*rook)->instantPosition[0] + i][(*rook)->instantPosition[1]] != defaultSymbol)
                 return 0;
         }
@@ -243,7 +241,19 @@ int KingMotion(struct chessPiece **king, struct chessPiece **takenPiece, char ch
 
         return 1;
     }
-    else
-        return 0;
+    else if((*king)->instantPosition[0] == nextPos / 10 && abs((*king)->instantPosition[1] - nextPos % 10) == 2)
+    {
+        if(Rok())
+        {
+            printf("ROK");
+            //return 1;
+        }
+    }
+    
+    return 0;
 }
 
+int Rok()
+{
+    
+}

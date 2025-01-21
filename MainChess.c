@@ -1,11 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "BoardLayoutAndPieces.h"
+#include "ColorPaletteForTerminal.h"
 
 void PieceSwitchFunction(struct chessPiece **, struct chessPiece **, int, int, char ,char [8][8]);
 void FindSelectedPiece(struct chessPiece[], struct chessPiece[], int, struct chessPiece **);
 void CreateChessBoard(char[8][8], int, char);
-void PrintChessBoard(char[8][8], int);
+void PrintChessBoard(char[8][8], int, char);
+int TakeInputFromGamer(char[]);
 void ClearTerminal();
 
 int main()
@@ -71,7 +73,7 @@ int main()
         blackPawns[i].isTaken = 0;
     }
  
-    PrintChessBoard(chessBoard, lengthBoard); 
+    PrintChessBoard(chessBoard, lengthBoard, defaultSymbol); 
 
     int selectedPosition;
     int nextPosition;
@@ -84,15 +86,16 @@ int main()
     while(1)
     {
         if(isWhiteTurn)
-            printf("Turn of WHITE\n");
+            printf(YELLOW "Turn of WHITE\n" RESET);
         else
-            printf("Turn of BLACK\n");
-
+            printf(YELLOW "Turn of BLACK\n" RESET);
         //Take input from user to play
-        printf("Select your piece: ");
-        scanf("%d", &selectedPosition);
-        printf("Input its next position: ");
-        scanf("%d", &nextPosition);
+        //Select piece to move from-
+        selectedPosition = TakeInputFromGamer("Select your piece: ");
+        //printf("%d\n", selectedPosition);
+        //Select piece to move to-
+        nextPosition = TakeInputFromGamer("Input its next position: ");
+        //printf("%d\n", nextPosition);
 
         //Check the turn and find selected piece
         if(isWhiteTurn)
@@ -123,7 +126,7 @@ int main()
 
         isWhiteTurn = !isWhiteTurn;
 
-        PrintChessBoard(chessBoard, lengthBoard); 
+        PrintChessBoard(chessBoard, lengthBoard, defaultSymbol); 
     }
     
     return 0;
@@ -212,25 +215,72 @@ void CreateChessBoard(char board[8][8], int length, char defaultSymbol)
     }
 }
 
-void PrintChessBoard(char board[8][8], int length)
+void PrintChessBoard(char board[8][8], int length, char defaultSymbol)
 {
     //ClearTerminal();
 
-    printf("  A B C D E F G H\n");
+    printf(RED "  A B C D E F G H\n" RESET);
 
     for(int i = 0; i < length; i++)
     {
-        printf("%d ", i + 1);
+        printf(RED "%d " RESET, i + 1);
         
         for(int j = 0; j < length; j++)
         {
-            printf("%c ", board[i][j]);
+            if(board[i][j] != defaultSymbol)
+            {
+                if((i % 2 == 0 && j % 2 == 1) || (i % 2 == 1 && j % 2 == 0))
+                    printf(BackGround CYAN "%c " RESET, board[i][j]);
+                else
+                    printf(CYAN "%c " RESET, board[i][j]);
+            }
+            else
+            {
+                if((i % 2 == 0 && j % 2 == 1) || (i % 2 == 1 && j % 2 == 0))
+                    printf(BackGround "%c " RESET, board[i][j]);
+                else
+                    printf("%c ", board[i][j]);    
+            }    
         }
         printf("\n");
     }
+
 }
 
 void ClearTerminal()
 {
     system("cls"); //Clear terminal for Windows
 }
+
+int TakeInputFromGamer(char questionText[])
+{
+    char inputPos[3]; //Last term is '\0'
+
+    printf("%s\n", questionText);
+    scanf("%2s", inputPos);
+
+    return ((int)inputPos[0] - (int)'1') * 10 + ((int)inputPos[1] - (int)'A');
+}
+
+/*
+void prasf(struct chessPiece wP, struct chessPiece wM, struct chessPiece bP, struct chessPiece bM, char board[8][8], int length, char defaultSymbol)
+{
+    //ClearTerminal();
+
+    printf(RED "  A B C D E F G H\n" RESET);
+
+    for(int i = 0; i < length; i++)
+    {
+        printf(RED "%d " RESET, i + 1);
+        
+        for(int j = 0; j < length; j++)
+        {
+            if(board[i][j] != defaultSymbol)
+                printf(CYAN "%c " RESET, board[i][j]);
+            else
+                printf("%c ", board[i][j]);
+        }
+        printf("\n");
+    }
+}
+*/
