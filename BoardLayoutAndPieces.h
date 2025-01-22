@@ -245,10 +245,44 @@ int KingMotion(struct chessPiece **king, struct chessPiece **takenPiece, char ch
     return 0;
 }
 
-int Rok()
+int Rok(struct chessPiece **king, struct chessPiece **rook, char board[8][8], char defaultSymbol)
 {
-    //Check between king and rook
-    //Check first move, both 
+    int distance = abs((*king)->instantPosition[1] - (*rook)->instantPosition[1]);
+    int step = (*king)->instantPosition[1] - (*rook)->instantPosition[1] > 0 ? -1 : 1; //Left or right
+
+    for(int i = 1 * step; i * step < distance; i += 1 * step)
+    {
+        printf("%d ", i);
+        if(board[(*king)->instantPosition[0]][(*king)->instantPosition[1] + i] != defaultSymbol)
+        {
+            return 0;
+        }
+    }
+
+    int kingNewXPos;
+    int rookNewXPos;
+    if(step == 1)
+    {
+        kingNewXPos = 6;
+        rookNewXPos = 5;
+    }
+    else if(step == -1)
+    {
+        kingNewXPos = 2;
+        rookNewXPos = 3;
+    }
+
+    board[(*king)->instantPosition[0]][(*king)->instantPosition[1]] = defaultSymbol;
+    board[(*rook)->instantPosition[0]][(*rook)->instantPosition[1]] = defaultSymbol;
+    (*king)->instantPosition[1] = kingNewXPos;
+    (*rook)->instantPosition[1] = rookNewXPos;
+    board[(*king)->instantPosition[0]][(*king)->instantPosition[1]] = (*king)->symbol;
+    board[(*rook)->instantPosition[0]][(*rook)->instantPosition[1]] = (*rook)->symbol;
+
+    (*king)->firstMove = 0;
+    (*rook)->firstMove = 0;
+    
+    return 1;
 }
 
 void PawnPromotion(struct chessPiece **pawn)

@@ -8,10 +8,13 @@ void FindSelectedPiece(struct chessPiece[], struct chessPiece[], int, struct che
 void CreateChessBoard(char[8][8], int, char);
 void PrintChessBoard(char[8][8], int, char);
 int TakeInputFromGamer(char[]);
+void PrintInfo();
 void ClearTerminal();
 
 int main()
 {
+    PrintInfo();
+
     char chessBoard[8][8];
     int lengthBoard = sizeof(chessBoard) / sizeof(chessBoard[0]); //Length -> x = y
     char defaultSymbol = 'O';
@@ -73,7 +76,7 @@ int main()
         blackPawns[i].isTaken = 0;
     }
  
-    PrintChessBoard(chessBoard, lengthBoard, defaultSymbol); 
+    //PrintChessBoard(chessBoard, lengthBoard, defaultSymbol); 
 
     int selectedPosition;
     int nextPosition;
@@ -85,22 +88,43 @@ int main()
 
     while(1)
     {
+        PrintChessBoard(chessBoard, lengthBoard, defaultSymbol); 
+
         if(isWhiteTurn)
             printf(YELLOW "Turn of WHITE\n" RESET);
         else
             printf(YELLOW "Turn of BLACK\n" RESET);
+
         //Take input from user to play
         //Select piece to move from-
         selectedPosition = TakeInputFromGamer("Select your piece: ");
-        //printf("%d\n", selectedPosition);
         //Select piece to move to-
         nextPosition = TakeInputFromGamer("Input its next position: ");
-        //printf("%d\n", nextPosition);
 
         //Check the turn and find selected piece
         if(isWhiteTurn)
         {
             FindSelectedPiece(whitePawns, whiteMajorPieces, selectedPosition, &selectedPiece);
+
+            //ROK
+            if(selectedPiece->symbol == 'K' && selectedPiece->firstMove == 1)
+            {
+                if(nextPosition / 10 == selectedPiece->startingPosition[0] && ((nextPosition % 10 == 0) || (nextPosition % 10 == 7)))
+                {
+                    FindSelectedPiece(whitePawns, whiteMajorPieces, nextPosition, &takenPiece);
+                    if(takenPiece != NULL)
+                    {
+                        if(takenPiece->symbol == 'R' && takenPiece->firstMove)
+                        {
+                            if(Rok(&selectedPiece, &takenPiece, chessBoard, defaultSymbol))
+                            {
+                                continue;
+                            }
+                        } 
+                    }
+                }
+            }
+
             //Find what piece is in next position -> it will be taken if it is possible
             //NOTE: I send rival pieces, so there's no need to check whether they are takeable due to rivalry.
             FindSelectedPiece(blackPawns, blackMajorPieces, nextPosition, &takenPiece);
@@ -108,6 +132,26 @@ int main()
         else
         {
             FindSelectedPiece(blackPawns, blackMajorPieces, selectedPosition, &selectedPiece);
+
+            //ROK
+            if(selectedPiece->symbol == 'K' && selectedPiece->firstMove == 1)
+            {
+                if(nextPosition / 10 == selectedPiece->startingPosition[0] && ((nextPosition % 10 == 0) || (nextPosition % 10 == 7)))
+                {
+                    FindSelectedPiece(whitePawns, whiteMajorPieces, nextPosition, &takenPiece);
+                    if(takenPiece != NULL)
+                    {
+                        if(takenPiece->symbol == 'R' && takenPiece->firstMove)
+                        {
+                            if(Rok(&selectedPiece, &takenPiece, chessBoard, defaultSymbol))
+                            {
+                                continue;
+                            }
+                        } 
+                    }
+                }
+            }
+
             //Find what piece is in next position -> it will be taken if it is possible
             //NOTE: I send rival pieces, so there's no need to check whether they are takeable due to rivalry.
             FindSelectedPiece(whitePawns, whiteMajorPieces, nextPosition, &takenPiece);
@@ -124,9 +168,9 @@ int main()
 
         PieceSwitchFunction(&selectedPiece, &takenPiece, selectedPosition, nextPosition, defaultSymbol, chessBoard);
 
-        //isWhiteTurn = !isWhiteTurn;
+        isWhiteTurn = !isWhiteTurn;
 
-        PrintChessBoard(chessBoard, lengthBoard, defaultSymbol); 
+        //PrintChessBoard(chessBoard, lengthBoard, defaultSymbol); 
     }
     
     return 0;
@@ -182,12 +226,6 @@ void PieceSwitchFunction(struct chessPiece **selectedPiece, struct chessPiece **
             }
 
         case 'K':
-            if((*selectedPiece)->instantPosition[0] == nextPosition / 10 && abs((*selectedPiece)->instantPosition[1] - nextPosition % 10) == 2)
-            {
-                Rok();
-                return;
-            }
-
             if(KingMotion(selectedPiece, takenPiece, chessBoard, nextPosition, defaultSymbol))
             {
                 MovePieceAndSetBoard(selectedPiece, chessBoard, nextPosition, defaultSymbol);
@@ -229,7 +267,7 @@ void CreateChessBoard(char board[8][8], int length, char defaultSymbol)
 
 void PrintChessBoard(char board[8][8], int length, char defaultSymbol)
 {
-    //ClearTerminal();
+    ClearTerminal();
 
     printf(RED "  A B C D E F G H\n" RESET);
 
@@ -268,6 +306,16 @@ int TakeInputFromGamer(char questionText[])
 
     return ((int)inputPos[0] - (int)'1') * 10 + ((int)inputPos[1] - (int)'A');
 }
+
+void PrintInfo()
+{
+    printf("---------- I ----------\n");
+    printf("Welcome\n");
+    printf("To castle, enter the position of the rook on that side for the next move.\n");
+    printf("by MyyTimes\n");
+    printf("---------- ^ ----------\n");
+}
+
 
 void ClearTerminal()
 {
