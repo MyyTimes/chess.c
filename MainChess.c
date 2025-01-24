@@ -3,7 +3,7 @@
 #include "BoardLayoutAndPieces.h"
 #include "ColorPaletteForTerminal.h"
 
-void PieceSwitchFunction(struct chessPiece **, struct chessPiece **, int, int, char ,char [8][8]);
+int PieceSwitchFunction(struct chessPiece **, struct chessPiece **, struct chessPiece **, int, int, char ,char [8][8]);
 void FindSelectedPiece(struct chessPiece[], struct chessPiece[], int, struct chessPiece **);
 void CreateChessBoard(char[8][8], int, char);
 void PrintChessBoard(char[8][8], int, char);
@@ -14,7 +14,7 @@ void ClearTerminal();
 int main()
 {
     PrintInfo();
-
+    
     char chessBoard[8][8];
     int lengthBoard = sizeof(chessBoard) / sizeof(chessBoard[0]); //Length -> x = y
     char defaultSymbol = 'O';
@@ -86,6 +86,9 @@ int main()
     selectedPiece = NULL;
     takenPiece = NULL;
 
+    struct chessPiece *enPassantPawn = (struct chessPiece *)malloc(sizeof(struct chessPiece));
+    enPassantPawn = NULL;
+
     while(1)
     {
         PrintChessBoard(chessBoard, lengthBoard, defaultSymbol); 
@@ -118,6 +121,7 @@ int main()
                         {
                             if(Rok(&selectedPiece, &takenPiece, chessBoard, defaultSymbol))
                             {
+                                isWhiteTurn = !isWhiteTurn;
                                 continue;
                             }
                         } 
@@ -145,6 +149,7 @@ int main()
                         {
                             if(Rok(&selectedPiece, &takenPiece, chessBoard, defaultSymbol))
                             {
+                                isWhiteTurn = !isWhiteTurn;
                                 continue;
                             }
                         } 
@@ -166,30 +171,70 @@ int main()
             printf("Target piece symbol: %c\n", takenPiece->symbol);
         }
 
-        PieceSwitchFunction(&selectedPiece, &takenPiece, selectedPosition, nextPosition, defaultSymbol, chessBoard);
+        if(PieceSwitchFunction(&selectedPiece, &takenPiece, &enPassantPawn,selectedPosition, nextPosition, defaultSymbol, chessBoard))
+        {
+            isWhiteTurn = !isWhiteTurn;
 
-        isWhiteTurn = !isWhiteTurn;
+            if(enPassantPawn != NULL && (enPassantPawn->isWhite == isWhiteTurn))
+                enPassantPawn = NULL; //RESET en passant pawn
+        }
+        else
+        {
+            printf(RED "ILLEGAL MOVE!\n" RESET);
+        }
+        
 
         //PrintChessBoard(chessBoard, lengthBoard, defaultSymbol); 
+
+        //Setting free other pointers
+        selectedPiece = NULL;
+        takenPiece = NULL;
     }
     
     return 0;
 }
 
-void PieceSwitchFunction(struct chessPiece **selectedPiece, struct chessPiece **takenPiece, int selectedPosition, int nextPosition, char defaultSymbol, char chessBoard[8][8])
+int PieceSwitchFunction(struct chessPiece **selectedPiece, struct chessPiece **takenPiece, struct chessPiece **enPassantPawn,int selectedPosition, int nextPosition, char defaultSymbol, char chessBoard[8][8])
 {
     switch ((*selectedPiece)->symbol)
     {
         case 'P':
-            if (PawnMotion(selectedPiece, takenPiece, nextPosition))
+            int pawnMotion = PawnMotion(selectedPiece, takenPiece, nextPosition);
+            if (pawnMotion)
             {
-                if(((*selectedPiece)->isWhite == 1 && nextPosition / 10 == 0) || (((*selectedPiece)->isWhite == 0 && nextPosition % 10 == 7)))
+                if(((*selectedPiece)->isWhite == 1 && nextPosition / 10 == 0) || (((*selectedPiece)->isWhite == 0 && nextPosition / 10 == 7)))
                 {
                     //Pawn is located on the zone of last rival line
                     PawnPromotion(selectedPiece);
                 }
+                else if(pawnMotion == 2) //This pawn started by moving two squares forward
+                {
+                    *enPassantPawn = *selectedPiece;
+                }
 
                 MovePieceAndSetBoard(selectedPiece, chessBoard, nextPosition, defaultSymbol);
+
+                return 1;
+            }
+            else //pawnMotion is zero but En Passant is possible so we will check it
+            {
+                if((*enPassantPawn) != NULL)
+                {
+                    //if distance is sqrt(2)
+                    if(sqrt(pow(nextPosition / 10 - (*selectedPiece)->instantPosition[0], 2) + pow(nextPosition % 10 - (*selectedPiece)->instantPosition[1], 2)) == sqrt(2))
+                    {
+                        int checkingMultiple = (*selectedPiece)->isWhite == 1 ? 1 : -1; 
+
+                        if((nextPosition / 10) * checkingMultiple < ((*enPassantPawn)->instantPosition[0]) * checkingMultiple && (nextPosition / 10) * checkingMultiple > ((*enPassantPawn)->startingPosition[0]) * checkingMultiple)
+                        {
+                            MovePieceAndSetBoard(selectedPiece, chessBoard, nextPosition, defaultSymbol);
+                            chessBoard[(*enPassantPawn)->instantPosition[0]][(*enPassantPawn)->instantPosition[1]] = defaultSymbol;
+                            (*enPassantPawn)->isTaken = 1;
+                            printf(YELLOW "EN PASSANT: %c\n" RESET, (*enPassantPawn)->symbol);
+                            return 1;
+                        }
+                    }
+                }
             }
 
             break;
@@ -198,6 +243,7 @@ void PieceSwitchFunction(struct chessPiece **selectedPiece, struct chessPiece **
             if(RookMotion(selectedPiece, takenPiece, chessBoard, nextPosition, defaultSymbol))
             {
                 MovePieceAndSetBoard(selectedPiece, chessBoard, nextPosition, defaultSymbol);
+                return 1;
             }
 
             break;
@@ -206,6 +252,7 @@ void PieceSwitchFunction(struct chessPiece **selectedPiece, struct chessPiece **
             if(HorseMotion(selectedPiece, takenPiece, chessBoard, nextPosition, defaultSymbol))
             {
                 MovePieceAndSetBoard(selectedPiece, chessBoard, nextPosition, defaultSymbol);
+                return 1;
             }
 
             break;
@@ -214,6 +261,7 @@ void PieceSwitchFunction(struct chessPiece **selectedPiece, struct chessPiece **
             if(BishopMotion(selectedPiece, takenPiece, chessBoard, nextPosition, defaultSymbol))
             {
                 MovePieceAndSetBoard(selectedPiece, chessBoard, nextPosition, defaultSymbol);
+                return 1;
             }
     
             break;
@@ -223,17 +271,27 @@ void PieceSwitchFunction(struct chessPiece **selectedPiece, struct chessPiece **
             if(BishopMotion(selectedPiece, takenPiece, chessBoard, nextPosition, defaultSymbol) || RookMotion(selectedPiece, takenPiece, chessBoard, nextPosition, defaultSymbol))
             {
                 MovePieceAndSetBoard(selectedPiece, chessBoard, nextPosition, defaultSymbol);
+                return 1;
             }
+
+            break;
 
         case 'K':
             if(KingMotion(selectedPiece, takenPiece, chessBoard, nextPosition, defaultSymbol))
             {
                 MovePieceAndSetBoard(selectedPiece, chessBoard, nextPosition, defaultSymbol);
+                return 1;
             }
+
+            break;
         
         default:
+            return 0;
             break;
+
     }
+
+    return 0;
 }
 
 void FindSelectedPiece(struct chessPiece pawns[], struct chessPiece majorPieces[], int selectedPos, struct chessPiece **selectedPiece)
@@ -267,7 +325,7 @@ void CreateChessBoard(char board[8][8], int length, char defaultSymbol)
 
 void PrintChessBoard(char board[8][8], int length, char defaultSymbol)
 {
-    ClearTerminal();
+    //ClearTerminal();
 
     printf(RED "  A B C D E F G H\n" RESET);
 

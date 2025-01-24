@@ -57,11 +57,11 @@ int PawnMotion(struct chessPiece **pawn, struct chessPiece **takenPiece, int nex
         return 1;
     }
     
+    //Moving 2 step forward
     if(((*pawn)->instantPosition[0] - nextRow == 2 * stepDirection) && ((*pawn)->instantPosition[1] == nextColumn) && (*pawn)->firstMove)
     {
         (*pawn)->firstMove = 0;
-
-        return 1;
+        return 2;
     }
 
     //Taking rival piece
