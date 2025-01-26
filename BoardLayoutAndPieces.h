@@ -303,3 +303,88 @@ void PawnPromotion(struct chessPiece **pawn)
 
     (*pawn)->symbol = newPiece;
 }
+
+
+//----------------------------------------------------------------------------------------------------
+#ifndef SaveToText_H    // If B_H is not defined
+#define SaveToText_H
+#include "SaveToText.h"
+//----------------------------------------------------------------------------------------------------
+
+struct savedMove
+{
+    struct chessPiece *movedPiece;
+    struct chessPiece *takenPiece;
+    int startPosition;
+    int endPosition;
+
+    struct savedMove *previousMove;
+};
+struct savedMove *lastMove = NULL;
+
+void CreateNode(struct chessPiece *movedPiece, struct chessPiece *takenPiece, int startPos, int endPos)
+{
+    struct savedMove *newMove = (struct savedMove*)malloc(sizeof(struct savedMove));
+    newMove->movedPiece = movedPiece;
+    newMove->takenPiece = takenPiece;
+    newMove->startPosition = startPos;
+    newMove->endPosition = endPos;
+    newMove->previousMove = NULL;
+
+    if(lastMove != NULL)
+    {
+        newMove->previousMove = lastMove;
+        lastMove = newMove;
+    }
+    else
+    {
+        lastMove = newMove;
+    }
+}
+
+//----------------------------------------------------------------------------------------------------
+//Save all moves at the end of the game to text
+void SaveDataToText(char defaultSymbol)
+{
+    printf("Starting save...\n");
+
+    if(StartSaving())
+        return;
+
+    struct savedMove *temp = NULL; 
+    temp = lastMove;
+
+    while(temp != NULL)
+    {
+        if(temp->takenPiece == NULL)
+            WriteMovesToText(temp->movedPiece->isWhite, temp->startPosition, temp->endPosition, temp->movedPiece->symbol, defaultSymbol, defaultSymbol);
+        else
+            WriteMovesToText(temp->movedPiece->isWhite, temp->startPosition, temp->endPosition, temp->movedPiece->symbol, temp->takenPiece->symbol, defaultSymbol);
+
+        temp = temp->previousMove;
+    }
+
+    CloseSaving();
+
+    printf("Saving completed!\n");
+}
+
+//Save all moves at the end of the game to text BUT REVERSE
+void SaveDataReverseToText(struct savedMove *temp, char defaultSymbol) 
+{ 
+    if (temp == NULL) 
+    {
+        return;
+    }
+    
+    SaveDataReverseToText(temp->previousMove, defaultSymbol);
+    
+    if(temp->takenPiece == NULL)
+        WriteMovesToText(temp->movedPiece->isWhite, temp->startPosition, temp->endPosition, temp->movedPiece->symbol, defaultSymbol, defaultSymbol);
+    else
+        WriteMovesToText(temp->movedPiece->isWhite, temp->startPosition, temp->endPosition, temp->movedPiece->symbol, temp->takenPiece->symbol, defaultSymbol);
+}
+
+//----------------------------------------------------------------------------------------------------
+#endif
+//----------------------------------------------------------------------------------------------------

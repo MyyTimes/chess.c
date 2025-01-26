@@ -17,6 +17,7 @@ int main()
 {
     PrintInfo();
     
+    int isGameOver = 0;
     char chessBoard[8][8];
     int lengthBoard = sizeof(chessBoard) / sizeof(chessBoard[0]); //Length -> x = y
     char defaultSymbol = 'O';
@@ -105,6 +106,21 @@ int main()
         //Select piece to move to-
         nextPosition = TakeInputFromGamer("Input its next position: ");
 
+        
+        if(isGameOver == 1)
+        {
+            if(StartSaving())
+                break;;
+            
+            //SaveDataToText(defaultSymbol);
+            SaveDataReverseToText(lastMove, defaultSymbol);
+
+            CloseSaving();
+            printf("Saving completed!\n");
+
+            break;;
+        }
+
         //Check the turn and find selected piece
         if(isWhiteTurn)
         {
@@ -181,6 +197,8 @@ int main()
                 if(ControlCheckKing(selectedPiece, &whiteMajorPieces[kingsIndex], chessBoard, defaultSymbol))
                     CheckKing();
             }
+
+            CreateNode(selectedPiece, takenPiece, selectedPosition, nextPosition);
         }
         else
         {
