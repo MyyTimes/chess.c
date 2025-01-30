@@ -7,17 +7,21 @@ struct chessPiece
     int instantPosition[2];
     char symbol;
     int firstMove; //at the beginning: 1
+    int firstMovePosition; //at the beginning = startPosition
     int isWhite;
     int isTaken; //at the beginning: 0
 };
 
-void CreatePawns(struct chessPiece *piece, int yxPosition)
+void CreatePawns(struct chessPiece *piece, int yxPosition, char pawnSymbol)
 {
-    piece->symbol = 'P';
+    piece->symbol = pawnSymbol;
     piece->startingPosition[0] = yxPosition / 10;
     piece->startingPosition[1] = yxPosition % 10;
     piece->instantPosition[0] = piece->startingPosition[0];
     piece->instantPosition[1] = piece->startingPosition[1];
+    piece->firstMove = 1;
+    piece->firstMovePosition = piece->startingPosition[0] * 10 + piece->startingPosition[1];
+    piece->isTaken = 0;
 }
 
 void LocatePieceOnBoard(struct chessPiece *piece, char board[8][8])
@@ -47,6 +51,7 @@ int PawnMotion(struct chessPiece **pawn, struct chessPiece **takenPiece, int nex
             if((*pawn)->firstMove == 1)
             {
                 (*pawn)->firstMove = 0;
+                (*pawn)->firstMovePosition = nextPosition;
             }
 
             return 1;
@@ -58,6 +63,7 @@ int PawnMotion(struct chessPiece **pawn, struct chessPiece **takenPiece, int nex
             if(board[nextRow + stepDirection][nextColumn] == defaultSymbol)
             {
                 (*pawn)->firstMove = 0;
+                (*pawn)->firstMovePosition = nextPosition;
                 return 2;
             }
         }
@@ -75,6 +81,7 @@ int PawnMotion(struct chessPiece **pawn, struct chessPiece **takenPiece, int nex
                 if((*pawn)->firstMove == 1)
                 {
                     (*pawn)->firstMove = 0;
+                    (*pawn)->firstMovePosition = nextPosition;
                 }
                 (*takenPiece)->isTaken = 1;
                 return 3;
@@ -132,6 +139,7 @@ int RookMotion(struct chessPiece **rook, struct chessPiece **takenPiece, char ch
     if((*rook)->firstMove == 1)
     {
         (*rook)->firstMove = 0;
+        (*rook)->firstMovePosition = nextPos;
     }
     
     return 1;
@@ -158,6 +166,7 @@ int HorseMotion(struct chessPiece **horse, struct chessPiece **takenPiece, char 
         if((*horse)->firstMove == 1)
         {
             (*horse)->firstMove = 0;
+            (*horse)->firstMovePosition = nextPos;
         }
 
         return 1;
@@ -188,28 +197,40 @@ int BishopMotion(struct chessPiece **bishop, struct chessPiece **takenPiece, cha
         tempBishopPositionX += iX;
         tempBishopPositionY += iY;
 
-        if((tempBishopPositionY + iY == nextPos / 10) && (tempBishopPositionX + iX == nextPos % 10))
+        if((tempBishopPositionY == nextPos / 10) && (tempBishopPositionX == nextPos % 10))
         {
-            if((*takenPiece) != NULL)
-            {
-                if((*takenPiece)->instantPosition[0] == nextPos / 10 && (*takenPiece)->instantPosition[1] == nextPos % 10)
-                {
-                    (*takenPiece)->isTaken = 1;
-                }
-            }
-            else if(chessBoard[nextPos / 10][nextPos % 10] != defaultSymbol) //So this piece is my piece, not rival
-            {
-                return 0;
-            }
-
             if((*bishop)->firstMove == 1)
             {
                 (*bishop)->firstMove = 0;
+                (*bishop)->firstMovePosition = nextPos;
             }
 
             return 1;
-        }     
+        }
     }
+
+    if((tempBishopPositionY + iY == nextPos / 10) && (tempBishopPositionX + iX == nextPos % 10))
+    {
+        if((*takenPiece) != NULL)
+        {
+            if((*takenPiece)->instantPosition[0] == nextPos / 10 && (*takenPiece)->instantPosition[1] == nextPos % 10)
+            {
+                (*takenPiece)->isTaken = 1;
+            }
+        }
+        else if(chessBoard[nextPos / 10][nextPos % 10] != defaultSymbol) //So this piece is my piece, not rival
+        {
+            return 0;
+        }
+
+        if((*bishop)->firstMove == 1)
+        {
+            (*bishop)->firstMove = 0;
+            (*bishop)->firstMovePosition = nextPos;
+        }
+
+        return 1;
+    }   
 
     return 0;
 }
@@ -235,6 +256,7 @@ int KingMotion(struct chessPiece **king, struct chessPiece **takenPiece, char ch
         if((*king)->firstMove == 1)
         {
             (*king)->firstMove = 0;
+            (*king)->firstMovePosition = nextPos;
         }
 
         return 1;
@@ -278,6 +300,9 @@ int Rok(struct chessPiece **king, struct chessPiece **rook, char board[8][8], ch
 
     (*king)->firstMove = 0;
     (*rook)->firstMove = 0;
+    (*king)->firstMovePosition = (*king)->instantPosition[0] * 10 + (*king)->instantPosition[1];
+    (*rook)->firstMovePosition = (*rook)->instantPosition[0] * 10 + (*rook)->instantPosition[1];
+
     
     return 1;
 }
@@ -383,6 +408,65 @@ void SaveDataReverseToText(struct savedMove *temp, char defaultSymbol)
         WriteMovesToText(temp->movedPiece->isWhite, temp->startPosition, temp->endPosition, temp->movedPiece->symbol, defaultSymbol, defaultSymbol);
     else
         WriteMovesToText(temp->movedPiece->isWhite, temp->startPosition, temp->endPosition, temp->movedPiece->symbol, temp->takenPiece->symbol, defaultSymbol);
+}
+
+int Undo(char board[8][8], char defaultSymbol)
+{
+    if(lastMove != NULL && lastMove->movedPiece != NULL)
+    {
+        board[lastMove->movedPiece->instantPosition[0]][lastMove->movedPiece->instantPosition[1]] = defaultSymbol;
+
+        lastMove->movedPiece->instantPosition[0] = lastMove->startPosition / 10;
+        lastMove->movedPiece->instantPosition[1] = lastMove->startPosition % 10;
+        board[lastMove->startPosition / 10][lastMove->startPosition % 10] = lastMove->movedPiece->symbol;
+
+        if(lastMove->takenPiece != NULL)
+        {
+            board[lastMove->takenPiece->instantPosition[0]][lastMove->takenPiece->instantPosition[1]] = defaultSymbol;
+
+            //If it is ROK
+            if((lastMove->movedPiece->symbol == 'K' && lastMove->takenPiece->symbol == 'R') || (lastMove->movedPiece->symbol == 'k' && lastMove->takenPiece->symbol == 'r'))
+            {
+                //Set ROOK
+                lastMove->takenPiece->instantPosition[0] = lastMove->endPosition / 10;
+                lastMove->takenPiece->instantPosition[1] = lastMove->endPosition % 10; 
+                board[lastMove->endPosition / 10][lastMove->endPosition % 10] = lastMove->takenPiece->symbol;
+
+                lastMove->movedPiece->firstMove = 1;
+                lastMove->takenPiece->firstMove = 1;
+            }
+
+            //A piece was taken
+            else if(lastMove->takenPiece->symbol != defaultSymbol)
+            {
+                lastMove->takenPiece->isTaken = 0;
+                board[lastMove->takenPiece->instantPosition[0]][lastMove->takenPiece->instantPosition[1]] = lastMove->takenPiece->symbol;
+
+                if(lastMove->endPosition == lastMove->takenPiece->firstMovePosition && lastMove->takenPiece->startingPosition[0] == lastMove->startPosition / 10 && lastMove->takenPiece->startingPosition[1] == lastMove->startPosition % 10)
+                {
+                    lastMove->takenPiece->firstMovePosition = lastMove->takenPiece->startingPosition[0] * 10 + lastMove->takenPiece->startingPosition[1];
+                    lastMove->takenPiece->firstMove = 1;
+                }
+            }
+        }
+
+        if(lastMove->endPosition == lastMove->movedPiece->firstMovePosition && lastMove->movedPiece->startingPosition[0] == lastMove->startPosition / 10 && lastMove->movedPiece->startingPosition[1] == lastMove->startPosition % 10)
+        {
+            lastMove->movedPiece->firstMovePosition = lastMove->movedPiece->startingPosition[0] * 10 + lastMove->movedPiece->startingPosition[1];
+            lastMove->movedPiece->firstMove = 1;
+        }
+
+        struct savedMove *temp = lastMove; 
+        lastMove = lastMove->previousMove; 
+        free(temp);  
+
+        return 1;
+    }
+    else
+    {
+        printf("Undo operation failed: Pointer is NULL!\n");
+        return 0;
+    }
 }
 
 //----------------------------------------------------------------------------------------------------
