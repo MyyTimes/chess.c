@@ -376,20 +376,27 @@ void PrintChessBoard(char board[8][8], int length, char defaultSymbol)
 {
     //ClearTerminal();
 
-    printf(RED "  A B C D E F G H\n" RESET);
+    printf(BRED "  A B C D E F G H\n" RESET);
 
     for(int i = 0; i < length; i++)
     {
-        printf(RED "%d " RESET, i + 1);
+        printf(BRED "%d " RESET, i + 1);
         
         for(int j = 0; j < length; j++)
         {
             if(board[i][j] != defaultSymbol)
             {
+                /*
                 if((i % 2 == 0 && j % 2 == 1) || (i % 2 == 1 && j % 2 == 0))
                     printf(BackGround CYAN "%c " RESET, board[i][j]);
                 else
                     printf(CYAN "%c " RESET, board[i][j]);
+                */
+                     
+                if((i % 2 == 0 && j % 2 == 1) || (i % 2 == 1 && j % 2 == 0))
+                    printf("%s%c " RESET, board[i][j] >= 'a' ? BackGround MAGENTA : BackGround CYAN, board[i][j]);
+                else
+                    printf("%s%c " RESET, board[i][j] >= 'a' ? MAGENTA : CYAN, board[i][j]);  
             }
             else
             {
