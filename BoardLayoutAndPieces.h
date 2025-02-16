@@ -12,6 +12,11 @@ struct chessPiece
     int isTaken; //at the beginning: 0
 };
 
+void SetIsTaken(struct chessPiece **piece, int value)
+{
+    (*piece)->isTaken = ((*piece)->symbol == 'K' || (*piece)->symbol == 'k') ? 0 : value;
+}
+
 void CreatePawns(struct chessPiece *piece, int yxPosition, char pawnSymbol)
 {
     piece->symbol = pawnSymbol;
@@ -83,7 +88,7 @@ int PawnMotion(struct chessPiece **pawn, struct chessPiece **takenPiece, int nex
                     (*pawn)->firstMove = 0;
                     (*pawn)->firstMovePosition = nextPosition;
                 }
-                (*takenPiece)->isTaken = 1;
+                SetIsTaken(takenPiece, 1);
                 return 3;
             }
         }
@@ -128,7 +133,7 @@ int RookMotion(struct chessPiece **rook, struct chessPiece **takenPiece, char ch
     {
         if((*takenPiece)->instantPosition[0] == nextPosition[0] && (*takenPiece)->instantPosition[1] == nextPosition[1])
         {
-            (*takenPiece)->isTaken = 1;
+            SetIsTaken(takenPiece, 1);
         }
     }
     else if(chessBoard[nextPosition[0]][nextPosition[1]] != defaultSymbol) //So this piece is my piece, not rival
@@ -155,7 +160,7 @@ int HorseMotion(struct chessPiece **horse, struct chessPiece **takenPiece, char 
         {
             if((*takenPiece)->instantPosition[0] == nextPos / 10 && (*takenPiece)->instantPosition[1] == nextPos % 10)
             {
-                (*takenPiece)->isTaken = 1;
+                SetIsTaken(takenPiece, 1);
             }
         }
         else if(chessBoard[nextPos / 10][nextPos % 10] != defaultSymbol) //So this piece is my piece, not rival
@@ -215,7 +220,7 @@ int BishopMotion(struct chessPiece **bishop, struct chessPiece **takenPiece, cha
         {
             if((*takenPiece)->instantPosition[0] == nextPos / 10 && (*takenPiece)->instantPosition[1] == nextPos % 10)
             {
-                (*takenPiece)->isTaken = 1;
+                SetIsTaken(takenPiece, 1);
             }
         }
         else if(chessBoard[nextPos / 10][nextPos % 10] != defaultSymbol) //So this piece is my piece, not rival
@@ -245,7 +250,7 @@ int KingMotion(struct chessPiece **king, struct chessPiece **takenPiece, char ch
         {
             if((*takenPiece)->instantPosition[0] == nextPos / 10 && (*takenPiece)->instantPosition[1] == nextPos % 10)
             {
-                (*takenPiece)->isTaken = 1;
+                SetIsTaken(takenPiece, 1);
             }
         }
         else if(chessBoard[nextPos / 10][nextPos % 10] != defaultSymbol) //So this piece is my piece, not rival
@@ -439,7 +444,9 @@ int Undo(char board[8][8], char defaultSymbol)
             //A piece was taken
             else if(lastMove->takenPiece->symbol != defaultSymbol)
             {
-                lastMove->takenPiece->isTaken = 0;
+                SetIsTaken(&lastMove->takenPiece, 0);
+                //lastMove->takenPiece->isTaken = 0;
+                
                 board[lastMove->takenPiece->instantPosition[0]][lastMove->takenPiece->instantPosition[1]] = lastMove->takenPiece->symbol;
 
                 if(lastMove->endPosition == lastMove->takenPiece->firstMovePosition && lastMove->takenPiece->startingPosition[0] == lastMove->startPosition / 10 && lastMove->takenPiece->startingPosition[1] == lastMove->startPosition % 10)

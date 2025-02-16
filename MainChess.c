@@ -3,8 +3,11 @@
 #include "BoardLayoutAndPieces.h"
 #include "ColorPaletteForTerminal.h"
 
-void CheckKing();
+int CheckControl(struct chessPiece[], struct chessPiece[], struct chessPiece[], struct chessPiece[], int, int *, char [8][8], char);
+int SendPiecesToControlCheckKing(struct chessPiece[], struct chessPiece[], struct chessPiece*, char[8][8], char);
 int ControlCheckKing(struct chessPiece *, struct chessPiece *, char [8][8], char);
+void CheckKing();
+
 int PieceSwitchFunction(struct chessPiece **, struct chessPiece **, struct chessPiece **, int, char ,char [8][8]);
 void FindSelectedPiece(struct chessPiece[], struct chessPiece[], int, struct chessPiece **);
 void CreateChessBoard(char[8][8], int, char);
@@ -113,6 +116,7 @@ int main()
             else
             {
                 printf(RED "Undoing the move was unsuccessful!\n" RESET);
+                continue;
             }
         }
 
@@ -159,20 +163,26 @@ int main()
         //ROK      
         if((selectedPiece->symbol == 'K' || selectedPiece->symbol == 'k') && selectedPiece->firstMove == 1)
         {
-            FindSelectedPiece(whitePawns, whiteMajorPieces, nextPosition, &takenPiece); //Find rook
-            if(takenPiece != NULL && (takenPiece->symbol == 'R' || takenPiece->symbol == 'r') && takenPiece->firstMove)
+            //To castling, the king must not be threatened
+            if(CheckControl(whitePawns, blackPawns, whiteMajorPieces, blackMajorPieces, kingsIndex, &isWhiteTurn, chessBoard, defaultSymbol) != 2)
             {
-                if(nextPosition / 10 == selectedPiece->startingPosition[0] && ((nextPosition % 10 == 0) || (nextPosition % 10 == 7)))
+                if(isWhiteTurn)  //FIND ROOK FOR WHITE
+                    FindSelectedPiece(whitePawns, whiteMajorPieces, nextPosition, &takenPiece);
+                else //FIND ROOK FOR BLACK
+                    FindSelectedPiece(blackPawns, blackMajorPieces, nextPosition, &takenPiece);
+
+                if(takenPiece != NULL && (takenPiece->symbol == 'R' || takenPiece->symbol == 'r') && takenPiece->firstMove)
                 {
-                    if(Rok(&selectedPiece, &takenPiece, chessBoard, defaultSymbol))
+                    if(nextPosition / 10 == selectedPiece->startingPosition[0] && ((nextPosition % 10 == 0) || (nextPosition % 10 == 7)))
                     {
-                        isWhiteTurn = !isWhiteTurn;
+                        if(Rok(&selectedPiece, &takenPiece, chessBoard, defaultSymbol))
+                        {
+                            isWhiteTurn = !isWhiteTurn;
 
-                        //  CHECK IF CHECKMATE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                            CreateNode(selectedPiece, takenPiece, selectedPosition, nextPosition);
 
-                        CreateNode(selectedPiece, takenPiece, selectedPosition, nextPosition);
-
-                        continue;
+                            continue;
+                        }
                     }
                 }
             }
@@ -182,24 +192,15 @@ int main()
         {
             MovePieceAndSetBoard(&selectedPiece, chessBoard, nextPosition, defaultSymbol);
 
-            //isWhiteTurn = !isWhiteTurn;
+            isWhiteTurn = !isWhiteTurn;
 
             if(enPassantPawn != NULL && (enPassantPawn->isWhite == isWhiteTurn))
                 enPassantPawn = NULL; //RESET en passant pawn
 
-            //Check if the opponent's king is in check         
-            if(!isWhiteTurn)
-            {
-                if(ControlCheckKing(selectedPiece, &blackMajorPieces[kingsIndex], chessBoard, defaultSymbol))
-                    CheckKing();
-            }
-            else
-            {
-                if(ControlCheckKing(selectedPiece, &whiteMajorPieces[kingsIndex], chessBoard, defaultSymbol))
-                    CheckKing();
-            }
-
             CreateNode(selectedPiece, takenPiece, selectedPosition, nextPosition);
+            
+            if(CheckControl(whitePawns, blackPawns, whiteMajorPieces, blackMajorPieces, kingsIndex, &isWhiteTurn, chessBoard, defaultSymbol));
+                continue; //ILLEGAL MOVE
         }
         else
         {
@@ -214,6 +215,88 @@ int main()
     CloseSaving();
     printf("Saving completed!\n");
     
+    //Set free - malloc
+    free(selectedPiece);
+    free(takenPiece);
+    free(enPassantPawn);
+
+    return 0;
+}
+
+int CheckControl(struct chessPiece wPawns[], struct chessPiece bPawns[], struct chessPiece wMajors[], struct chessPiece bMajors[], int kingsIndex, int *isWhiteTurn, char board[8][8], char defaultSymbol)
+{
+    if(*isWhiteTurn == 0)
+    {
+        //First control is for "ILLEGAL MOVE"
+
+        if(SendPiecesToControlCheckKing(bPawns, bMajors, &wMajors[kingsIndex], board, defaultSymbol))
+        {
+            printf(RED "ILLEGAL MOVE\n" RESET);
+
+            if(Undo(board, defaultSymbol))
+            {
+                *isWhiteTurn = !(*isWhiteTurn);
+                printf(GREEN "Undoing the move was successful.\n" RESET);
+                
+                return 1; //continue;
+            }
+            else
+            {
+                printf(RED "Undoing the move was unsuccessful!\n" RESET);
+
+                return 1; //continue;
+            }
+        }
+        else if(SendPiecesToControlCheckKing(wPawns, wMajors, &bMajors[kingsIndex], board, defaultSymbol))
+        {
+            CheckKing();
+            return 2; //Check
+        }      
+    }
+    else
+    {
+        if(SendPiecesToControlCheckKing(wPawns, wMajors, &bMajors[kingsIndex], board, defaultSymbol))
+        {
+            printf(RED "ILLEGAL MOVE\n" RESET);
+
+            if(Undo(board, defaultSymbol))
+            {
+                *isWhiteTurn = !(*isWhiteTurn);
+                printf(GREEN "Undoing the move was successful.\n" RESET);
+
+                return 1; //continue;
+            }
+            else
+            {
+                printf(RED "Undoing the move was unsuccessful!\n" RESET);
+
+                return 1; //continue;
+            }
+        }
+        else if(SendPiecesToControlCheckKing(bPawns, bMajors, &wMajors[kingsIndex], board, defaultSymbol))
+        {
+            CheckKing();
+            return 2; //Check
+        }
+    }
+
+    return 0;
+}
+
+int SendPiecesToControlCheckKing(struct chessPiece pawns[], struct chessPiece majors[], struct chessPiece *king, char board[8][8], char defaultSymbol)
+{
+    for(int i = 0; i < 8; i++)
+    {            
+        if(pawns[i].isTaken == 0 && ControlCheckKing(&pawns[i], king, board, defaultSymbol))
+        {
+            return 1;
+        }
+        if(majors[i].isTaken == 0 && ControlCheckKing(&majors[i], king, board, defaultSymbol) && (majors[i].symbol != 'k' && majors[i].symbol != 'K'))
+        {
+            return 1;
+        }
+    }
+
     return 0;
 }
 
@@ -385,14 +468,7 @@ void PrintChessBoard(char board[8][8], int length, char defaultSymbol)
         for(int j = 0; j < length; j++)
         {
             if(board[i][j] != defaultSymbol)
-            {
-                /*
-                if((i % 2 == 0 && j % 2 == 1) || (i % 2 == 1 && j % 2 == 0))
-                    printf(BackGround CYAN "%c " RESET, board[i][j]);
-                else
-                    printf(CYAN "%c " RESET, board[i][j]);
-                */
-                     
+            {                    
                 if((i % 2 == 0 && j % 2 == 1) || (i % 2 == 1 && j % 2 == 0))
                     printf("%s%c " RESET, board[i][j] >= 'a' ? BackGround MAGENTA : BackGround CYAN, board[i][j]);
                 else
