@@ -5,7 +5,7 @@
 A simple chess game implementation in C.
 
 # Main Function:
-The main function is located in the `MainChess.c` file, which is the entry point of the program. Other header files are also included via HeaderFiles.h.
+The main function is located in the `MainChess.c` file, which is the entry point of the program. Other header files are also included via `HeaderFiles.h`.
 
 # Features:
 - All chess pieces and their moves are implemented.
