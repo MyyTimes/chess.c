@@ -1,3 +1,5 @@
+#ifndef COLOR_PALETTE_FOR_TERMINAL_H
+#define COLOR_PALETTE_FOR_TERMINAL_H
 
 #define RESET   "\033[0m" 
 #define RED     "\033[31m"
@@ -18,3 +20,5 @@
 #define BWHITE   "\033[1;37m"
 
 #define BackGround "\033[48;5;236m"
+
+#endif // COLOR_PALETTE_FOR_TERMINAL_H

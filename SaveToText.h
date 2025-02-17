@@ -1,3 +1,6 @@
+#ifndef SAVE_TO_TEXT_H
+#define SAVE_TO_TEXT_H
+
 #include <stdio.h>
 
 FILE *saveText;
@@ -8,14 +11,14 @@ char IntToChar(int value)
     return letters[value];
 }
 
-void WriteMovesToText(int isWhite, int startPos, int endPos, char movedPiece, char takenPiece, char defaultSymbol)
+void WriteMovesToText(int isWhite, int startPos, int endPos, char movedPiece, char takenPiece)
 {
     if(saveText != NULL)
     {
         fprintf(saveText, "Player: %s: %c: ", isWhite == 1 ? "White" : "Black", movedPiece);
         fprintf(saveText, "%d%c -> %d%c ", startPos / 10 + 1, IntToChar(startPos % 10), endPos / 10 + 1, IntToChar(endPos % 10));
 
-        if(takenPiece != defaultSymbol)
+        if(takenPiece != BOARD_DEFAULT_SYMBOL)
             fprintf(saveText, "| %c was taken.", takenPiece);
 
         fprintf(saveText, "\n");
@@ -53,3 +56,5 @@ void CloseSaving()
         saveText = NULL;
     }
 }
+
+#endif // SAVE_TO_TEXT_H
