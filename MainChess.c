@@ -10,7 +10,8 @@ void CheckKing();
 int PieceSwitchFunction(struct chessPiece **, struct chessPiece **, struct chessPiece **, int, char [8][8]);
 void FindSelectedPiece(struct chessPiece[], struct chessPiece[], int, struct chessPiece **);
 void CreateChessBoard(char[8][8]);
-void PrintChessBoard(char[8][8]);
+int SetActiveRotativeBoard();
+void PrintChessBoard(char[8][8], int, int);
 int TakeInputFromGamer(char[]);
 void PrintInfo();
 void ClearTerminal();
@@ -23,6 +24,8 @@ int main()
     char chessBoard[8][8];
     int isWhiteTurn = 1;
     int kingsIndex = 7;
+    
+    int isRotationEnable = SetActiveRotativeBoard();
 
     //Prepare the default board
     CreateChessBoard(chessBoard);
@@ -89,7 +92,7 @@ int main()
 
     while(isGameOver == 0)
     {
-        PrintChessBoard(chessBoard); 
+        PrintChessBoard(chessBoard, isWhiteTurn, isRotationEnable); 
 
         if(isWhiteTurn)
             printf(YELLOW "Turn of WHITE\n" RESET);
@@ -452,17 +455,52 @@ void CreateChessBoard(char board[8][8])
     }
 }
 
-void PrintChessBoard(char board[8][8])
+int SetActiveRotativeBoard()
+{
+    printf("Return to the board every round? (Y/N)");
+
+    char responce;
+
+    scanf(" %c", &responce);
+
+    while (getchar() != '\n');
+
+    responce = (responce >= 'a' && responce <= 'z') ? responce - 'a' + 'A' : responce;
+
+    if (responce == 'Y') 
+        return 1;
+    else if (responce == 'N')
+        return 0;
+    else 
+    {
+        printf("Invalid response. Please enter Y or N.\n");
+        return SetActiveRotativeBoard();
+    }
+}
+
+void PrintChessBoard(char board[8][8], int isWhiteTurn, int isRotationEnabled)
 {
     //ClearTerminal();
 
-    printf(BRED "  A B C D E F G H\n" RESET);
+    int startPosY = 0;
+    int endPosY = BOARD_SIZE;
 
-    for(int i = 0; i < BOARD_SIZE; i++)
+    if(isWhiteTurn != 1 && isRotationEnabled == 1)
+    {
+        startPosY = BOARD_SIZE - 1;
+        endPosY = -1;
+
+        //printf(BRED "%s" RESET, isWhiteTurn == 1 ? "  A B C D E F G H\n" : "  H G F E D C B A\n");
+        printf(BRED "  H G F E D C B A\n" RESET);
+    }
+    else
+        printf(BRED "  A B C D E F G H\n" RESET);
+
+    for(int i = startPosY; i != endPosY; i += ((isWhiteTurn != 1 && isRotationEnabled == 1) ? -1 : 1))
     {
         printf(BRED "%d " RESET, i + 1);
         
-        for(int j = 0; j < BOARD_SIZE; j++)
+        for(int j = startPosY; j != endPosY; j += ((isWhiteTurn != 1 && isRotationEnabled == 1) ? -1 : 1))
         {
             if(board[i][j] != BOARD_DEFAULT_SYMBOL)
             {                    
@@ -481,7 +519,6 @@ void PrintChessBoard(char board[8][8])
         }
         printf("\n");
     }
-
 }
 
 int TakeInputFromGamer(char questionText[])
