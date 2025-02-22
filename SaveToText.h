@@ -1,7 +1,7 @@
 #ifndef SAVE_TO_TEXT_H
 #define SAVE_TO_TEXT_H
 
-#include <stdio.h>
+#include "HeaderFiles.h"
 
 FILE *saveText;
 
@@ -20,6 +20,26 @@ void WriteMovesToText(int isWhite, int startPos, int endPos, char movedPiece, ch
 
         if(takenPiece != BOARD_DEFAULT_SYMBOL)
             fprintf(saveText, "| %c was taken.", takenPiece);
+
+        fprintf(saveText, "\n");
+    }
+    else
+    {
+        printf("Error: Unable to open file.\n");
+        return;
+    }
+}
+
+void WriteResultToText(int result)
+{
+    if(saveText != NULL)
+    {
+        if(result == 1)
+            fprintf(saveText, "WHITE wins the game!");
+        else if(result == 2)
+            fprintf(saveText, "BLACK wins the game!");
+        else if(result == 3)
+            fprintf(saveText, "It's a stalemate!");
 
         fprintf(saveText, "\n");
     }

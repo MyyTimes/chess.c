@@ -1,15 +1,5 @@
-#include <stdio.h>
-#include <stdlib.h>
 #include "HeaderFiles.h"
 
-int CheckControl(struct chessPiece[], struct chessPiece[], struct chessPiece[], struct chessPiece[], int, int *, char [8][8]);
-int SendPiecesToControlCheckKing(struct chessPiece[], struct chessPiece[], struct chessPiece*, char[8][8]);
-int ControlCheckKing(struct chessPiece *, struct chessPiece *, char [8][8]);
-void CheckKing();
-
-int PieceSwitchFunction(struct chessPiece **, struct chessPiece **, struct chessPiece **, int, char [8][8]);
-void FindSelectedPiece(struct chessPiece[], struct chessPiece[], int, struct chessPiece **);
-void CreateChessBoard(char[8][8]);
 int SetActiveRotativeBoard();
 void PrintChessBoard(char[8][8], int, int);
 int TakeInputFromGamer(char[]);
@@ -17,11 +7,14 @@ void PrintInfo();
 void ClearTerminal();
 
 int main()
-{
+{    
     PrintInfo();
-    
+
+    int gameResult = 0; // 1-> White 2-> Black 3-> Stalemate
     int isGameOver = 0;
+    int isCheck = 0;
     char chessBoard[8][8];
+    char tempBoard[8][8];
     int isWhiteTurn = 1;
     int kingsIndex = 7;
     
@@ -29,6 +22,7 @@ int main()
 
     //Prepare the default board
     CreateChessBoard(chessBoard);
+    CreateChessBoard(tempBoard);
 
     //WHITE PIECES
     struct chessPiece whitePawns[8];
@@ -84,15 +78,63 @@ int main()
 
     struct chessPiece *selectedPiece = (struct chessPiece *)malloc(sizeof(struct chessPiece));
     struct chessPiece *takenPiece = (struct chessPiece *)malloc(sizeof(struct chessPiece));
-    selectedPiece = NULL;
-    takenPiece = NULL;
 
     struct chessPiece *enPassantPawn = (struct chessPiece *)malloc(sizeof(struct chessPiece));
     enPassantPawn = NULL;
-
+    
     while(isGameOver == 0)
     {
+        //Setting free other pointers
+        selectedPiece = NULL;
+        takenPiece = NULL;
+
+        ResetTempBoard(tempBoard, chessBoard); // tempBoard = chessBoard
         PrintChessBoard(chessBoard, isWhiteTurn, isRotationEnable); 
+
+        // CHECK KING - ILLEGAL MOVE OR CHECK
+        CheckKings(whitePawns, blackPawns, whiteMajorPieces, blackMajorPieces, &isWhiteTurn, &isCheck, chessBoard);
+
+        // Checkmate - Stalemate
+        if(isWhiteTurn == 0)
+        {
+            if(CheckmateControl(blackPawns, blackMajorPieces, chessBoard))
+            {
+                if(isCheck)
+                {
+                    printf(BGREEN "WHITE wins the game!\n" RESET);
+                    gameResult = 1;
+                    isGameOver = 1;
+                    continue;
+                }
+                else //Stalemate
+                {
+                    printf(BWHITE "It's a stalemate!\n" RESET);
+                    gameResult = 3;
+                    isGameOver = 1;
+                    continue;
+                }     
+            }
+        }
+        else
+        {
+            if(CheckmateControl(whitePawns, whiteMajorPieces, chessBoard))
+            {
+                if(isCheck)
+                {
+                    printf(BGREEN "BLACK wins the game!\n" RESET);
+                    gameResult = 2;
+                    isGameOver = 1;
+                    continue;
+                }
+                else //Stalemate
+                {
+                    printf(BWHITE "It's a stalemate!\n" RESET);
+                    gameResult = 3;
+                    isGameOver = 1;
+                    continue;
+                }
+            }
+        }
 
         if(isWhiteTurn)
             printf(YELLOW "Turn of WHITE\n" RESET);
@@ -103,48 +145,75 @@ int main()
         //Select piece to move from-
         selectedPosition = TakeInputFromGamer("Select your piece: ");
 
-        //UNDO
-        if(selectedPosition == 373) //Entering "UN" -> (int)373
+        switch (selectedPosition)
         {
-            if(Undo(chessBoard))
-            {
-                isWhiteTurn = !isWhiteTurn;
-                printf(GREEN "Undoing the move was successful.\n" RESET);
+            case 373: //Entering "UN" -> (int)373
+                if(Undo(chessBoard))
+                {
+                    isWhiteTurn = !isWhiteTurn;
+                    printf(GREEN "Undoing the move was successful.\n" RESET);
+                }
+                else
+                {
+                    printf(RED "Undoing the move was unsuccessful!\n" RESET);
+                }
+                continue;
 
+            //Entering "WW" -> (int)402 | "BW" -> (int)192 | "SM" -> (int)352
+            case 403:
+            case 192:
+            case 352:
+                gameResult = (selectedPosition == 403) ? 1 : (selectedPosition == 192) ? 2 : 3;
+                isGameOver = 1;
                 continue;
-            }
-            else
-            {
-                printf(RED "Undoing the move was unsuccessful!\n" RESET);
+
+            case 253: 
+                PrintInfo();
                 continue;
-            }
+
+            default:
+                break;
         }
 
-        //Select piece to move to-
-        nextPosition = TakeInputFromGamer("Input its next position: ");
-
-        //Setting free other pointers
-        selectedPiece = NULL;
-        takenPiece = NULL;
-
-        //Check the turn and find selected piece
+        //Find selected piece
         if(isWhiteTurn)
         {
             FindSelectedPiece(whitePawns, whiteMajorPieces, selectedPosition, &selectedPiece);
-
-            //Find what piece is in next position -> it will be taken if it is possible
-            //NOTE: I send rival pieces, so there's no need to check whether they are takeable due to rivalry.
-            FindSelectedPiece(blackPawns, blackMajorPieces, nextPosition, &takenPiece);
         }
         else
         {
             FindSelectedPiece(blackPawns, blackMajorPieces, selectedPosition, &selectedPiece);
-
-            //Find what piece is in next position -> it will be taken if it is possible
-            //NOTE: I send rival pieces, so there's no need to check whether they are takeable due to rivalry.
-            FindSelectedPiece(whitePawns, whiteMajorPieces, nextPosition, &takenPiece);
         }
 
+        if(selectedPiece == NULL)
+        {
+            printf(RED "There is no piece in that location!\n" RESET);
+            continue;
+        }
+
+        //CASTLING CONTROL
+        if((selectedPiece->symbol == 'k' || selectedPiece->symbol == 'K') && selectedPiece->firstMove)
+        {
+            if(CheckKings(whitePawns, blackPawns, whiteMajorPieces, blackMajorPieces, &isWhiteTurn, &isCheck, chessBoard) == 0)
+            {
+                int castlingPos = selectedPiece->instantPosition[0] * 10 + BOARD_SIZE - 1;
+                MarkCastling(selectedPiece, selectedPiece->isWhite ? &whiteMajorPieces[0] : &blackMajorPieces[0], castlingPos, tempBoard); // RIGHT ROOK
+                castlingPos = selectedPiece->instantPosition[0] * 10 + 0;
+                MarkCastling(selectedPiece, selectedPiece->isWhite ? &whiteMajorPieces[1] : &blackMajorPieces[1], castlingPos, tempBoard); // LEFT ROOK
+            }
+        }
+
+        FindFunctionBySymbol(selectedPiece, enPassantPawn, tempBoard);
+
+        PrintChessBoard(tempBoard, isWhiteTurn, isRotationEnable);
+
+        //Select piece to move to XX
+        nextPosition = TakeInputFromGamer("Input its next position: ");
+
+        //Find what piece is in next position -> it will be taken if it is possible
+        //NOTE: I send rival pieces, so there's no need to check whether they are takeable due to rivalry.
+        FindSelectedPiece((isWhiteTurn ? blackPawns : whitePawns), (isWhiteTurn ? blackMajorPieces : whiteMajorPieces), nextPosition, &takenPiece);
+        
         if(takenPiece == NULL)
         {
             printf("No target piece\n");
@@ -154,57 +223,85 @@ int main()
             printf("Target piece symbol: %c\n", takenPiece->symbol);
         }
 
-        if(selectedPiece == NULL)
-        {
-            printf(RED "There is no piece in that location!\n" RESET);
-            continue;
-        }
-
-        //ROK      
-        if((selectedPiece->symbol == 'K' || selectedPiece->symbol == 'k') && selectedPiece->firstMove == 1)
-        {
-            //To castling, the king must not be threatened
-            if(CheckControl(whitePawns, blackPawns, whiteMajorPieces, blackMajorPieces, kingsIndex, &isWhiteTurn, chessBoard) != 2)
-            {
-                if(isWhiteTurn)  //FIND ROOK FOR WHITE
-                    FindSelectedPiece(whitePawns, whiteMajorPieces, nextPosition, &takenPiece);
-                else //FIND ROOK FOR BLACK
-                    FindSelectedPiece(blackPawns, blackMajorPieces, nextPosition, &takenPiece);
-
-                if(takenPiece != NULL && (takenPiece->symbol == 'R' || takenPiece->symbol == 'r') && takenPiece->firstMove)
+        //VALID MOVE - MAKE THE MOVE
+        if(tempBoard[nextPosition / 10][nextPosition % 10] == BOARD_MARKED_SYMBOL)
+        {       
+            //CASTLING
+            if((selectedPiece->symbol == 'k' || selectedPiece->symbol == 'K') && selectedPiece->firstMove)
+            {    
+                if(nextPosition / 10 == selectedPiece->startingPosition[0] && ((nextPosition % 10 == 0) || (nextPosition % 10 == 7)))
                 {
-                    if(nextPosition / 10 == selectedPiece->startingPosition[0] && ((nextPosition % 10 == 0) || (nextPosition % 10 == 7)))
-                    {
-                        if(Rok(&selectedPiece, &takenPiece, chessBoard))
-                        {
-                            isWhiteTurn = !isWhiteTurn;
+                    // Find rook
+                    FindSelectedPiece(NULL, isWhiteTurn ? whiteMajorPieces : blackMajorPieces, nextPosition, &takenPiece);
 
-                            CreateNode(selectedPiece, takenPiece, selectedPosition, nextPosition);
+                    int kingNewXPos = selectedPiece->instantPosition[1] > takenPiece->instantPosition[1] ? 2 : 6;
+                    int rookNewXPos = selectedPiece->instantPosition[1] > takenPiece->instantPosition[1] ? 3 : 5;
+                    MovePieceAndSetBoard(&selectedPiece, chessBoard, selectedPiece->instantPosition[0] * 10 + kingNewXPos);
+                    MovePieceAndSetBoard(&takenPiece, chessBoard, takenPiece->instantPosition[0] * 10 + rookNewXPos);
 
-                            continue;
-                        }
-                    }
+                    selectedPiece->firstMove = 0;
+                    takenPiece->firstMove = 0;
+                    selectedPiece->firstMovePosition = selectedPiece->instantPosition[0] * 10 + selectedPiece->instantPosition[1];
+                    takenPiece->firstMovePosition = takenPiece->instantPosition[0] * 10 + takenPiece->instantPosition[1];
+
+                    isWhiteTurn = !isWhiteTurn;
+                    CreateNode(selectedPiece, takenPiece, selectedPosition, nextPosition);
+
+                    continue;    
                 }
             }
-        }
-    
-        if(PieceSwitchFunction(&selectedPiece, &takenPiece, &enPassantPawn, nextPosition, chessBoard))
-        {
+            
+            if(enPassantPawn != NULL)
+            {
+                if(nextPosition / 10 + (enPassantPawn->isWhite == 1 ? -1 : 1) == enPassantPawn->instantPosition[0] && nextPosition % 10 == enPassantPawn->instantPosition[1])
+                {       
+                    //TAKE EN PASSANT
+                    SetIsTaken(&enPassantPawn, 1);
+                    chessBoard[enPassantPawn->instantPosition[0]][enPassantPawn->instantPosition[1]] = BOARD_DEFAULT_SYMBOL;
+                    
+                    takenPiece = enPassantPawn;
+                }
+                
+                if(enPassantPawn->isWhite == !isWhiteTurn)
+                   enPassantPawn = NULL; //RESET en passant pawn
+            }            
+
             MovePieceAndSetBoard(&selectedPiece, chessBoard, nextPosition);
 
+            //En Passant
+            if((selectedPiece->symbol == 'P' || selectedPiece->symbol == 'p'))
+            {
+                if((abs(selectedPosition / 10 - nextPosition / 10) == 2))
+                    enPassantPawn = selectedPiece;
+
+                if((selectedPiece->isWhite == 1 && nextPosition / 10 == 0) || ((selectedPiece->isWhite == 0 && nextPosition / 10 == BOARD_SIZE - 1)))
+                {
+                    //Pawn is located on the zone of last rival line
+                    PawnPromotion(&selectedPiece);
+                }
+            }
+
+            if(takenPiece != NULL && takenPiece->isWhite != isWhiteTurn) // Second condition is for CASTLING
+            {
+                if(nextPosition / 10 == takenPiece->instantPosition[0] && nextPosition % 10 == takenPiece->instantPosition[1])
+                {
+                    SetIsTaken(&takenPiece, 1);
+                }
+            }
+            
+            if(selectedPiece->firstMove == 1)
+            {
+                selectedPiece->firstMove = 0;
+                selectedPiece->firstMovePosition = nextPosition;
+            }
+            
             isWhiteTurn = !isWhiteTurn;
 
-            if(enPassantPawn != NULL && (enPassantPawn->isWhite == isWhiteTurn))
-                enPassantPawn = NULL; //RESET en passant pawn
-
             CreateNode(selectedPiece, takenPiece, selectedPosition, nextPosition);
-            
-            if(CheckControl(whitePawns, blackPawns, whiteMajorPieces, blackMajorPieces, kingsIndex, &isWhiteTurn, chessBoard));
-                continue; //ILLEGAL MOVE
         }
         else
         {
-            printf(RED "ILLEGAL MOVE!\n" RESET);
+            printf(RED "INVALID MOVE\n" RESET);
         }
     }
 
@@ -212,6 +309,7 @@ int main()
         return 0; 
     //SaveDataToText(defaultSymbol);
     SaveDataReverseToText(lastMove);
+    WriteResultToText(gameResult);
     CloseSaving();
     printf("Saving completed!\n");
     
@@ -223,241 +321,9 @@ int main()
     return 0;
 }
 
-int CheckControl(struct chessPiece wPawns[], struct chessPiece bPawns[], struct chessPiece wMajors[], struct chessPiece bMajors[], int kingsIndex, int *isWhiteTurn, char board[8][8])
-{
-    if(*isWhiteTurn == 0)
-    {
-        //First control is for "ILLEGAL MOVE"
-
-        if(SendPiecesToControlCheckKing(bPawns, bMajors, &wMajors[kingsIndex], board))
-        {
-            printf(RED "ILLEGAL MOVE\n" RESET);
-
-            if(Undo(board))
-            {
-                *isWhiteTurn = !(*isWhiteTurn);
-                printf(GREEN "Undoing the move was successful.\n" RESET);
-                
-                return 1; //continue;
-            }
-            else
-            {
-                printf(RED "Undoing the move was unsuccessful!\n" RESET);
-
-                return 1; //continue;
-            }
-        }
-        else if(SendPiecesToControlCheckKing(wPawns, wMajors, &bMajors[kingsIndex], board))
-        {
-            CheckKing();
-            return 2; //Check
-        }      
-    }
-    else
-    {
-        if(SendPiecesToControlCheckKing(wPawns, wMajors, &bMajors[kingsIndex], board))
-        {
-            printf(RED "ILLEGAL MOVE\n" RESET);
-
-            if(Undo(board))
-            {
-                *isWhiteTurn = !(*isWhiteTurn);
-                printf(GREEN "Undoing the move was successful.\n" RESET);
-
-                return 1; //continue;
-            }
-            else
-            {
-                printf(RED "Undoing the move was unsuccessful!\n" RESET);
-
-                return 1; //continue;
-            }
-        }
-        else if(SendPiecesToControlCheckKing(bPawns, bMajors, &wMajors[kingsIndex], board))
-        {
-            CheckKing();
-            return 2; //Check
-        }
-    }
-
-    return 0;
-}
-
-int SendPiecesToControlCheckKing(struct chessPiece pawns[], struct chessPiece majors[], struct chessPiece *king, char board[8][8])
-{
-    for(int i = 0; i < 8; i++)
-    {            
-        if(pawns[i].isTaken == 0 && ControlCheckKing(&pawns[i], king, board))
-        {
-            return 1;
-        }
-        if(majors[i].isTaken == 0 && ControlCheckKing(&majors[i], king, board) && (majors[i].symbol != 'k' && majors[i].symbol != 'K'))
-        {
-            return 1;
-        }
-    }
-
-    return 0;
-}
-
-int ControlCheckKing(struct chessPiece *lastMovedPiece, struct chessPiece *king, char board[8][8])
-{
-    int kingPosition = king->instantPosition[0] * 10 + king->instantPosition[1];
-
-    if(lastMovedPiece->symbol == 'P' || lastMovedPiece->symbol == 'p')
-    {
-        if(PawnMotion(&lastMovedPiece, &king, kingPosition, board) == 3)
-        {
-            return 1;
-        }
-    }
-    else if(PieceSwitchFunction(&lastMovedPiece, &king, NULL, kingPosition, board))
-    {
-        return 1;
-    }
-
-    return 0;
-}
-
-void CheckKing()
-{
-    printf(GREEN "CHECK!\n" RESET);
-}
-
-int PieceSwitchFunction(struct chessPiece **selectedPiece, struct chessPiece **takenPiece, struct chessPiece **enPassantPawn, int nextPosition, char chessBoard[8][8])
-{
-    switch ((*selectedPiece)->symbol)
-    {
-        case 'P':
-        case 'p':
-            int pawnMotion = PawnMotion(selectedPiece, takenPiece, nextPosition, chessBoard);
-            if (pawnMotion)
-            {
-                if(((*selectedPiece)->isWhite == 1 && nextPosition / 10 == 0) || (((*selectedPiece)->isWhite == 0 && nextPosition / 10 == 7)))
-                {
-                    //Pawn is located on the zone of last rival line
-                    PawnPromotion(selectedPiece);
-                }
-                else if(pawnMotion == 2) //This pawn started by moving two squares forward
-                {
-                    *enPassantPawn = *selectedPiece;
-                }
-
-                MovePieceAndSetBoard(selectedPiece, chessBoard, nextPosition);
-
-                return 1;
-            }
-            else //pawnMotion is zero but En Passant is possible so we will check it
-            {
-                if((*enPassantPawn) != NULL)
-                {
-                    //if distance is sqrt(2)
-                    if(sqrt(pow(nextPosition / 10 - (*selectedPiece)->instantPosition[0], 2) + pow(nextPosition % 10 - (*selectedPiece)->instantPosition[1], 2)) == sqrt(2))
-                    {
-                        int checkingMultiple = (*selectedPiece)->isWhite == 1 ? 1 : -1; 
-
-                        if((nextPosition / 10) * checkingMultiple < ((*enPassantPawn)->instantPosition[0]) * checkingMultiple && (nextPosition / 10) * checkingMultiple > ((*enPassantPawn)->startingPosition[0]) * checkingMultiple)
-                        {
-                            MovePieceAndSetBoard(selectedPiece, chessBoard, nextPosition);
-                            chessBoard[(*enPassantPawn)->instantPosition[0]][(*enPassantPawn)->instantPosition[1]] = BOARD_DEFAULT_SYMBOL;
-                            (*enPassantPawn)->isTaken = 1;
-                            printf(YELLOW "EN PASSANT: %c\n" RESET, (*enPassantPawn)->symbol);
-                            *takenPiece = *enPassantPawn;
-                            return 1;
-                        }
-                    }
-                }
-            }
-
-            break;
-        
-        case 'R':  
-        case 'r':       
-            if(RookMotion(selectedPiece, takenPiece, chessBoard, nextPosition))
-            {
-                return 1;
-            }
-
-            break;
-
-        case 'H':
-        case 'h':
-            if(HorseMotion(selectedPiece, takenPiece, chessBoard, nextPosition))
-            {
-                return 1;
-            }
-
-            break;
-        
-        case 'B':
-        case 'b':
-            if(BishopMotion(selectedPiece, takenPiece, chessBoard, nextPosition))
-            {
-                return 1;
-            }
-    
-            break;
-
-        case 'Q':
-        case 'q':
-            //Calling horse and bishop functions
-            if(BishopMotion(selectedPiece, takenPiece, chessBoard, nextPosition) || RookMotion(selectedPiece, takenPiece, chessBoard, nextPosition))
-            {
-                return 1;
-            }
-
-            break;
-
-        case 'K':
-        case 'k':
-            if(KingMotion(selectedPiece, takenPiece, chessBoard, nextPosition))
-            {
-                return 1;
-            }
-
-            break;
-        
-        default:
-            return 0;
-            break;
-
-    }
-
-    return 0;
-}
-
-void FindSelectedPiece(struct chessPiece pawns[], struct chessPiece majorPieces[], int selectedPos, struct chessPiece **selectedPiece)
-{
-    for(int i = 0; i < 8; i++)
-    {
-        if(pawns[i].isTaken == 0 && ((pawns[i].instantPosition[0]) == selectedPos / 10) && ((pawns[i].instantPosition[1]) == (selectedPos % 10)))
-        {
-            *selectedPiece = &pawns[i];
-            return;
-        }
-
-        if(majorPieces[i].isTaken == 0 && (majorPieces[i].instantPosition[0] == selectedPos / 10) && (majorPieces[i].instantPosition[1] == selectedPos % 10))
-        {
-            *selectedPiece = &majorPieces[i];
-            return;
-        }
-    }
-}
-
-void CreateChessBoard(char board[8][8])
-{
-    for(int i = 0; i < BOARD_SIZE; i++)
-    {
-        for(int j = 0; j < BOARD_SIZE; j++)
-        {
-            board[i][j] = BOARD_DEFAULT_SYMBOL;
-        }
-    }
-}
-
 int SetActiveRotativeBoard()
 {
-    printf("Return to the board every round? (Y/N)");
+    printf("Return to the board every round? (%sY%s/%sN%s)", GREEN, RESET, RED, RESET);
 
     char responce;
 
@@ -502,7 +368,14 @@ void PrintChessBoard(char board[8][8], int isWhiteTurn, int isRotationEnabled)
         
         for(int j = startPosY; j != endPosY; j += ((isWhiteTurn != 1 && isRotationEnabled == 1) ? -1 : 1))
         {
-            if(board[i][j] != BOARD_DEFAULT_SYMBOL)
+            if(board[i][j] == BOARD_MARKED_SYMBOL)
+            {
+                if((i % 2 == 0 && j % 2 == 1) || (i % 2 == 1 && j % 2 == 0))
+                    printf(BackGround GREEN "%c " RESET, board[i][j]);
+                else
+                    printf(GREEN "%c " RESET, board[i][j]); 
+            }
+            else if(board[i][j] != BOARD_DEFAULT_SYMBOL)
             {                    
                 if((i % 2 == 0 && j % 2 == 1) || (i % 2 == 1 && j % 2 == 0))
                     printf("%s%c " RESET, board[i][j] >= 'a' ? BackGround MAGENTA : BackGround CYAN, board[i][j]);
@@ -533,12 +406,14 @@ int TakeInputFromGamer(char questionText[])
 
 void PrintInfo()
 {
-    printf("---------- I ----------\n");
-    printf("Welcome\n");
+    printf(BRED "---------- I ----------\n" RESET);
+    printf(BYELLOW "Welcome\n" RESET);
     printf("To castle, enter the position of the rook on that side for the next move.\n");
-    printf("To undo, enter \"UN\".\n");
-    printf("by MyyTimes\n");
-    printf("---------- ^ ----------\n");
+    printf("To undo, enter \"%sUN%s\".\n", YELLOW, RESET);
+    printf("Entering \"%sWW%s\": White wins | \"%sBW%s\": Black wins || \"%sSM%s\": Stalemate\n", YELLOW, RESET, YELLOW, RESET, YELLOW, RESET);
+    printf("Enter \"%sIN%s\" to see this panel again! \n", YELLOW, RESET);
+    printf(BackGround "by MyyTimes\n" RESET);
+    printf(BRED "---------- ^ ----------\n" RESET);
 }
 
 void ClearTerminal()

@@ -1,8 +1,6 @@
 #ifndef SAVE_SYSTEM_H
 #define SAVE_SYSTEM_H
 
-#include <stdio.h>
-#include <stdlib.h>
 #include "HeaderFiles.h"
 
 struct savedMove
@@ -101,6 +99,8 @@ int Undo(char board[8][8])
                 lastMove->takenPiece->instantPosition[1] = lastMove->endPosition % 10; 
                 board[lastMove->endPosition / 10][lastMove->endPosition % 10] = lastMove->takenPiece->symbol;
 
+                lastMove->movedPiece->firstMovePosition = lastMove->movedPiece->startingPosition[0] * 10 + lastMove->movedPiece->startingPosition[1];
+                lastMove->takenPiece->firstMovePosition = lastMove->takenPiece->startingPosition[0] * 10 + lastMove->takenPiece->startingPosition[1];
                 lastMove->movedPiece->firstMove = 1;
                 lastMove->takenPiece->firstMove = 1;
             }
