@@ -82,6 +82,12 @@ int main()
     struct chessPiece *enPassantPawn = (struct chessPiece *)malloc(sizeof(struct chessPiece));
     enPassantPawn = NULL;
     
+    //LOAD GAME -- CHANGE IT LATER
+    if(!LoadGameFromTextFile(whitePawns, blackPawns, whiteMajorPieces, blackMajorPieces, chessBoard))
+    {
+        printf(RED "There is a problem with the file!\n" RESET);
+    }
+
     while(isGameOver == 0)
     {
         //Setting free other pointers
@@ -187,6 +193,7 @@ int main()
 
         if(selectedPiece == NULL)
         {
+            ClearTerminal();
             printf(RED "There is no piece in that location!\n" RESET);
             continue;
         }
@@ -247,6 +254,7 @@ int main()
                     isWhiteTurn = !isWhiteTurn;
                     CreateNode(selectedPiece, takenPiece, selectedPosition, nextPosition);
 
+                    ClearTerminal();
                     continue;    
                 }
             }
@@ -298,9 +306,11 @@ int main()
             isWhiteTurn = !isWhiteTurn;
 
             CreateNode(selectedPiece, takenPiece, selectedPosition, nextPosition);
+            ClearTerminal();
         }
         else
         {
+            ClearTerminal();
             printf(RED "INVALID MOVE\n" RESET);
         }
     }
@@ -346,8 +356,6 @@ int SetActiveRotativeBoard()
 
 void PrintChessBoard(char board[8][8], int isWhiteTurn, int isRotationEnabled)
 {
-    //ClearTerminal();
-
     int startPosY = 0;
     int endPosY = BOARD_SIZE;
 
@@ -356,7 +364,6 @@ void PrintChessBoard(char board[8][8], int isWhiteTurn, int isRotationEnabled)
         startPosY = BOARD_SIZE - 1;
         endPosY = -1;
 
-        //printf(BRED "%s" RESET, isWhiteTurn == 1 ? "  A B C D E F G H\n" : "  H G F E D C B A\n");
         printf(BRED "  H G F E D C B A\n" RESET);
     }
     else
@@ -418,5 +425,6 @@ void PrintInfo()
 
 void ClearTerminal()
 {
+    //printf("%s", CLEAR_SCREEN);
     system("cls"); //Clear terminal for Windows
 }

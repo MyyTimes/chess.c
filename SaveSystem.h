@@ -140,4 +140,102 @@ int Undo(char board[8][8])
     }
 }
 
+//----------------------------------------------------------------------------------------------------
+//LOAD SYSTEM
+
+char CharToInt(int value)
+{
+    char letters[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'};
+    return letters[value];
+}
+
+int LoadGameFromTextFile(struct chessPiece wPawns[], struct chessPiece bPawns[], struct chessPiece wMajors[], struct chessPiece bMajors[], char chessBoard[8][8])
+{
+    char fileName[100];
+    printf("Enter the name of the text file to be uploaded: ");
+    scanf(" %s", fileName);
+
+    FILE *loadFile = fopen(fileName, "r");
+
+    if(loadFile != NULL)
+    {
+        int isWhite = 1;
+        char startPos[3];
+        char endPos[3];
+        int startPosValue;
+        int endPosValue;
+
+        struct chessPiece *selectedPiece = (struct chessPiece *)malloc(sizeof(struct chessPiece));
+        struct chessPiece *takenPiece = (struct chessPiece *)malloc(sizeof(struct chessPiece));
+        selectedPiece = NULL;
+        takenPiece = NULL;
+
+        printf(GREEN "File is loading...\n" RESET);
+
+        while(fscanf(loadFile, "%2s", startPos) != EOF)
+        {   
+            if(fscanf(loadFile, "%2s", endPos) > 0)
+            {
+                startPosValue = (startPos[0] - '1') * 10 + (startPos[1] - 'A');
+                endPosValue = (endPos[0] - '1') * 10 + (endPos[1] - 'A');
+
+                //printf("%d %d\n", startPosValue, endPosValue);
+
+                if(isWhite)
+                {
+                    FindSelectedPiece(wPawns, wMajors, startPosValue, &selectedPiece);
+                    FindSelectedPiece(bPawns, bMajors, endPosValue, &takenPiece);
+                }
+                else
+                {
+                    FindSelectedPiece(bPawns, bMajors, startPosValue, &selectedPiece);
+                    FindSelectedPiece(wPawns, wMajors, endPosValue, &takenPiece);
+                }
+
+                if(selectedPiece != NULL)
+                {
+                    selectedPiece->instantPosition[0] = startPosValue / 10;
+                    selectedPiece->instantPosition[1] = startPosValue % 10;
+
+                    if(selectedPiece->firstMove)
+                    {
+                        selectedPiece->firstMove = 0;
+                        selectedPiece->firstMovePosition = endPosValue;
+                    }
+
+                    MovePieceAndSetBoard(&selectedPiece,chessBoard, endPosValue);
+
+                    if(takenPiece != NULL)
+                    {
+                        SetIsTaken(&takenPiece, 1);
+                    }
+                }
+                else
+                {
+                    return 0;
+                }
+
+                //Create NODE to be able to UNDO
+                CreateNode(selectedPiece, takenPiece, startPosValue, endPosValue);
+
+                isWhite = !isWhite;
+            }
+            else
+            {
+                return 0;
+            }     
+        }
+
+        //free(selectedPiece);
+        //free(takenPiece);
+        
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+
 #endif //SAVE_SYSTEM_H

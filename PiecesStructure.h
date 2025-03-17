@@ -9,7 +9,7 @@ struct chessPiece
     int instantPosition[2];
     char symbol;
     int firstMove; //at the beginning: 1
-    int firstMovePosition; //at the beginning = startPosition
+    int firstMovePosition; //at the beginning = startPosition !The position reached in the first movement
     int isWhite;
     int isTaken; //at the beginning: 0
 };
